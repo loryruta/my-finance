@@ -6,7 +6,7 @@ const bcryptSaltRounds = 10;
 
 function insertUser(username, password) {
     bcrypt.hash(password, bcryptSaltRounds, async (error, hash) => {
-        await db.query(`INSERT INTO users ("user", "password") VALUES ($1, $2)`, [username, hash]);
+        await db.query(`INSERT INTO users ("user", "password_digest") VALUES ($1, $2)`, [username, hash]);
     });
 }
 

@@ -16,7 +16,7 @@ let db;
     });
     await db.connect();
 
-    console.log("Done");
+    console.log("DB connection established");
 })();
 
 module.exports = db;

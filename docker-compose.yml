@@ -1,0 +1,17 @@
+version: "3.8"
+services:
+  pgsql:
+      image: postgres:14.5-alpine
+      volumes:
+        - ".mount/pgsql/data/:/var/lib/postgresql/data/"
+      ports:
+        - "5432:5432"
+      environment:
+        - POSTGRES_HOST_AUTH_METHOD=trust
+  app:
+    image: node:16-alpine3.15
+    volumes:
+      - ".:/usr/local/app"
+    depends_on:
+      - postgres
+    command: tail -f /dev/null

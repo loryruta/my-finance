@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "dotenv": "^16.0.2",
+    "moment": "^2.29.4",
+    "node-telegram-bot-api": "^0.59.0",
+    "pg": "^8.8.0",
+    "pg-format": "^1.0.4"
+  },
+  "name": "my-finance",
+  "version": "1.0.0",
+  "description": "My finance Telegram bot",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loryruta/my-finance.git"
+  },
+  "author": "loryruta",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/loryruta/my-finance/issues"
+  },
+  "homepage": "https://github.com/loryruta/my-finance#readme"
+}
