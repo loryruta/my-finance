@@ -170,6 +170,8 @@ const onCreateWalletCommand = requireLogin(async function (message) {
     bot.sendMessage(chatId, `Wallet "${title}" created successfully`);
 });
 
+// removeWalletCommand ?
+
 const onSelectWalletCommand = requireLogin(async function (message) {
     const chatId = message.chat.id;
 
@@ -196,7 +198,18 @@ const onAddVariationCommand = requireSelectedWallet(requireLogin(async function 
     const user = await getUserFromChatId(chatId);
     const wallet = await user.getSelectedWallet();
 
-    await bot.sendMessage(chatId, "Variation added");
+    const matches = message.text.match(/(\/[^\s]+)\s([^\s]+)(?:\s+(.*))?/);
+
+    let amount = parseFloat(matches[2]);
+    let note = matches[3];
+
+    if (isNaN(amount)) {
+        await bot.sendMessage(chatId, "Invalid usage: /add <amount> [note]");
+    } else {
+        await wallet.addVariation(amount, null, note); // timestamp specified by another command
+        
+        await bot.sendMessage(chatId, "Variation added");
+    }
 }));
 
 const onRemoveLastVariationCommand = requireSelectedWallet(requireSelectedWallet(requireLogin(async function (message) {
@@ -205,7 +218,12 @@ const onRemoveLastVariationCommand = requireSelectedWallet(requireSelectedWallet
     const user = await getUserFromChatId(chatId);
     const wallet = await user.getSelectedWallet();
 
-    await bot.sendMessage(chatId, "Last variation removed"); // Of and when
+    let removedVariation = await wallet.removeLastVariation();
+    if (removedVariation) {
+        await bot.sendMessage(chatId, `Removed variation #${removedVariation.id} of ${removedVariation.amount} dated ${moment(removedVariation.timestamp).format('lll')}`);
+    } else {
+        await bot.sendMessage(chatId, "No variation found: wallet is empty");
+    }
 })));
 
 // ------------------------------------------------------------------------------------------------
