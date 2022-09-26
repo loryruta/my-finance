@@ -9,9 +9,8 @@ services:
       environment:
         - POSTGRES_HOST_AUTH_METHOD=trust
   app:
-    image: node:16-alpine3.15
+    build: .
     volumes:
       - ".:/usr/local/app"
     depends_on:
       - postgres
-    command: tail -f /dev/null
