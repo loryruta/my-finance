@@ -2,27 +2,35 @@ const dotenv = require('dotenv');
 const TelegramBot = require('node-telegram-bot-api');
 const bcrypt = require('bcrypt');
 const moment = require('moment');
+const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
+require('chartjs-adapter-moment');
+const Util = require('util');
 
 const db = require('./db');
 const { User } = require('./user');
 const config = require('../config');
 const { Wallet } = require('./wallet');
 
+// ------------------------------------------------------------------------------------------------
+// Initialization
+// ------------------------------------------------------------------------------------------------
+
 dotenv.config();
 
+// Telegram bot
 const botToken = process.env['TELEGRAM_BOT_TOKEN'];
 const bot = new TelegramBot(botToken, {polling: true});
 
+const chartJsRenderer = new ChartJSNodeCanvas({ type: 'png', width: 800, height: 600 });
+
+function convertCurrencyToNumber(currency) {
+    return Number(currency.replace(/[^0-9.-]+/g, ""));
+}
+
+// ------------------------------------------------------------------------------------------------
+
 let context = {};
 let result;
-
-bot.setMyCommands([
-    { command: "login", description: "Login" },
-    { command: "create", description: "Create a wallet" },
-    { command: "select", description: "Select a wallet" },
-    { command: "add", description: "Add a variation" },
-    { command: "removelast", description: "Remove the last variation inserted" },
-]);
 
 bot.on('message', async message => {
     const chatId = message.chat.id;
@@ -200,19 +208,20 @@ const onAddVariationCommand = requireSelectedWallet(requireLogin(async function 
 
     const matches = message.text.match(/(\/[^\s]+)\s([^\s]+)(?:\s+(.*))?/);
 
+    if (!matches || !matches[2] || isNaN(parseFloat(matches[2]))) {
+        await bot.sendMessage(chatId, "Invalid usage: /add <amount> [note]");
+        return;
+    }
+
     let amount = parseFloat(matches[2]);
     let note = matches[3];
 
-    if (isNaN(amount)) {
-        await bot.sendMessage(chatId, "Invalid usage: /add <amount> [note]");
-    } else {
-        await wallet.addVariation(amount, null, note); // timestamp specified by another command
-        
-        await bot.sendMessage(chatId, "Variation added");
-    }
+    await wallet.addVariation(amount, null, note); // timestamp can't be specified by this command
+
+    await bot.sendMessage(chatId, "Variation added");
 }));
 
-const onRemoveLastVariationCommand = requireSelectedWallet(requireSelectedWallet(requireLogin(async function (message) {
+const onRemoveLastVariationCommand = requireSelectedWallet(requireLogin(async function (message) {
     const chatId = message.chat.id;
 
     const user = await getUserFromChatId(chatId);
@@ -224,7 +233,75 @@ const onRemoveLastVariationCommand = requireSelectedWallet(requireSelectedWallet
     } else {
         await bot.sendMessage(chatId, "No variation found: wallet is empty");
     }
-})));
+}));
+
+const onChartCommand = requireSelectedWallet(requireLogin(async function (message) {
+    const chatId = message.chat.id;
+
+    const user = await getUserFromChatId(chatId);
+    const wallet = await user.getSelectedWallet();
+
+    // TODO (VERY IMPORTANT): RATE LIMIT THE NUMBER OF CHARTS THAT CAN BE GENERATED
+
+    const variations = await wallet.getVariations();
+
+	const configuration = {
+		type: "line",
+		data: {
+			datasets: [
+                {
+                    //label: await wallet.getAttribute("title"),
+                    data: variations.map(variation => {
+                        return {
+                            x: variation.timestamp,
+                            y: convertCurrencyToNumber(variation.incremental_amount)
+                        };
+                    }),
+                    fill: false,
+                    borderColor: 'red',
+		    	}
+            ]
+		},
+        options: {
+            plugins: {
+                legend: {
+                    display: false,
+                },
+            },
+            scales: {
+                xAxis: {
+                    type: 'time', 
+                },
+            },
+        },
+	};
+
+	const imageBuffer = await chartJsRenderer.renderToBuffer(configuration); // TODO USE STREAMS ?
+    
+    await bot.sendPhoto(
+        chatId,
+        imageBuffer,
+        { caption: `Chart of wallet "${await wallet.getAttribute("title")}"` },
+        { filename: 'chart.png', contentType: 'image/png' }
+    );
+}));
+
+const commands = {
+    "login": { description: "Login", callback: onLoginCommand },
+    "logout": { description: "Logout", callback: onLogoutCommand },
+    "create": { description: "Create a wallet", callback: onCreateWalletCommand },
+    "select": { description: "Select a wallet", callback: onSelectWalletCommand },
+    "add": { description: "Add a variation", callback: onAddVariationCommand },
+    "removelast": { description: "Remove last variation", callback: onRemoveLastVariationCommand },
+    "chart": { description: "Show the chart of a wallet", callback: onChartCommand },
+};
+
+bot.setMyCommands(Object.keys(commands).map(command => {
+    return {
+        command: command,
+        description: commands[command].description,
+    };
+}));
 
 // ------------------------------------------------------------------------------------------------
 // Callback queries
@@ -260,17 +337,8 @@ bot.onText(/\/([^\s]+)/, async (message, match) => {
 
     const command = match[1];
 
-    const commandFunctions = {
-        "login": onLoginCommand,
-        "logout": onLogoutCommand,
-        "create": onCreateWalletCommand,
-        "select": onSelectWalletCommand,
-        "add": onAddVariationCommand,
-        "removelast": onRemoveLastVariationCommand, 
-    };
-
-    if (command in commandFunctions) {
-        await commandFunctions[command](message);
+    if (command in commands) {
+        await commands[command].callback(message);
     } else {
         // Nothing
     }

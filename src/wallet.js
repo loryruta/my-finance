@@ -7,7 +7,13 @@ class Wallet extends Model {
     }
 
     async addVariation(amount, timestamp, note) {
-        await db.query(`INSERT INTO variations (id_wallet, amount, timestamp, note) VALUES ($1, $2, COALESCE($3, NOW()), $4)`, [
+        await db.query(`
+            INSERT INTO variations (id_wallet, amount, timestamp, note, incremental_amount)
+            SELECT $1, $2, COALESCE($3, NOW()), $4, (
+                SELECT COALESCE(SUM(amount), 0::money) + $2::money FROM variations AS t1
+                WHERE
+                    t1.id_wallet = $1
+            )`, [
             this.id,
             amount,
             timestamp,
@@ -28,6 +34,13 @@ class Wallet extends Model {
         } else {
             return null;
         }
+    }
+    
+    async getVariations() {
+        let result = await db.query(`
+            SELECT * FROM variations WHERE id_wallet = $1
+        `, [this.id]);
+        return result.rows;
     }
 }
 
