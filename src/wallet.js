@@ -1,5 +1,6 @@
 const db = require("./db");
 const { Model } = require('./model');
+const pgFormat = require('pg-format');
 
 class Wallet extends Model {
     constructor(id) {
@@ -36,10 +37,14 @@ class Wallet extends Model {
         }
     }
     
-    async getVariations() {
-        let result = await db.query(`
-            SELECT * FROM variations WHERE id_wallet = $1
-        `, [this.id]);
+    async getVariations(period) {
+        let sql = pgFormat(`
+            SELECT * FROM variations
+            WHERE
+                id_wallet = $1 AND
+                timestamp >= now() - interval '1 %I'
+        `, period);
+        let result = await db.query(sql, [this.id]);
         return result.rows;
     }
 }

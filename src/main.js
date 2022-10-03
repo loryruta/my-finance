@@ -178,15 +178,40 @@ const onCreateWalletCommand = requireLogin(async function (message) {
     bot.sendMessage(chatId, `Wallet "${title}" created successfully`);
 });
 
-// removeWalletCommand ?
+const onDestroyWalletCommand = requireSelectedWallet(requireLogin(async function (message) {
+    const chatId = message.chat.id;
+    const user = await getUserFromChatId(chatId);
+    const wallet = await user.getSelectedWallet();
+
+    await bot.sendMessage(chatId, `Are you sure you want to __*permanently destroy*__ the wallet "${await wallet.getAttribute("title")}"?`, {
+        parse_mode: 'MarkdownV2',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "Yes", callback_data: 'y' }],
+                [{ text: "No", callback_data: 'n' }]
+            ]
+        }
+    });
+
+    context[chatId] = { 
+        callbackQuery: "confirm_destroy_wallet",
+        toDestroyWalletId: wallet.id,
+    };
+}));
 
 const onSelectWalletCommand = requireLogin(async function (message) {
     const chatId = message.chat.id;
 
     const user = await getUserFromChatId(chatId);
+    const wallets = await user.getWallets();
+
+    if (wallets.length == 0) {
+        await bot.sendMessage(chatId, "You don't have any wallet. Use /create <title>");
+        return;
+    }
 
     let inlineKeyboard = [];
-    for (let wallet of (await user.getWallets())) {
+    for (let wallet of wallets) {
         inlineKeyboard.push([{
             text: await wallet.getAttribute("title"),
             callback_data: wallet.id,
@@ -218,7 +243,7 @@ const onAddVariationCommand = requireSelectedWallet(requireLogin(async function 
 
     await wallet.addVariation(amount, null, note); // timestamp can't be specified by this command
 
-    await bot.sendMessage(chatId, "Variation added");
+    await bot.sendMessage(chatId, `Added variation of ${amount}${note ? ` "${note}"`: ''}`);
 }));
 
 const onRemoveLastVariationCommand = requireSelectedWallet(requireLogin(async function (message) {
@@ -243,7 +268,7 @@ const onChartCommand = requireSelectedWallet(requireLogin(async function (messag
 
     // TODO (VERY IMPORTANT): RATE LIMIT THE NUMBER OF CHARTS THAT CAN BE GENERATED
 
-    const variations = await wallet.getVariations();
+    const variations = await wallet.getVariations('month');
 
 	const configuration = {
 		type: "line",
@@ -290,6 +315,7 @@ const commands = {
     "login": { description: "Login", callback: onLoginCommand },
     "logout": { description: "Logout", callback: onLogoutCommand },
     "create": { description: "Create a wallet", callback: onCreateWalletCommand },
+    "destroy": { description: "Destroy the selected wallet", callback: onDestroyWalletCommand },
     "select": { description: "Select a wallet", callback: onSelectWalletCommand },
     "add": { description: "Add a variation", callback: onAddVariationCommand },
     "removelast": { description: "Remove last variation", callback: onRemoveLastVariationCommand },
@@ -323,6 +349,23 @@ async function onSelectWalletCallbackQuery(query) {
     return true;
 }
 
+async function onConfirmDestroyWalletCallbackQuery(query) {
+    const chatId = query.message.chat.id;
+
+    const user = await getUserFromChatId(chatId);
+
+    if (query.data === 'y') {
+        const toDestroyWalletId = context[chatId].toDestroyWalletId;
+        user.destroyWallet(toDestroyWalletId);
+    
+        await bot.sendMessage(chatId, `Wallet was permanently destroyed`);
+
+        delete context[chatId].toDestroyWalletId;
+    }
+
+    return true;
+}
+
 // ------------------------------------------------------------------------------------------------
 // Telegram event hooks
 // ------------------------------------------------------------------------------------------------
@@ -350,6 +393,7 @@ bot.on('callback_query', async query => {
         const myCallbackQuery = context[chatId].callbackQuery;
         const callbackQueryHandlers = {
             'select_wallet': onSelectWalletCallbackQuery,
+            'confirm_destroy_wallet': onConfirmDestroyWalletCallbackQuery
         };
 
         if (myCallbackQuery in callbackQueryHandlers && await callbackQueryHandlers[myCallbackQuery](query)) {
