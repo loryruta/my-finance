@@ -1,7 +1,7 @@
 # my-finance 🚧
 
-_I needed something to keep track of my expenses and since I couldn't find anything that fit all of my interests, and because it was a simple project to accomplish,
-I've decided to make my own solution._
+_I needed something to keep track of my expenses and since I couldn't find anything that fitted my interests, and because it was a simple project to accomplish,
+I've decided to come up with my own solution._
 
 my-finance is a **personal backend** (thus meant to be installed on **your** Raspberry, VPS or whatever...) that permits to create wallets, add "variations" to them
 (that can be incomings or outcomings) and generate temporal charts for a single wallet or for a group of wallets.
