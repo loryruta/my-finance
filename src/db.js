@@ -1,22 +1,37 @@
 const dotenv = require('dotenv');
-const { Client } = require('pg');
+const { Pool } = require('pg');
 
 dotenv.config();
 
-let db;
-(async () => {
-    console.log("Connecting to the DB...");
-    
-    db = new Client({
-        host: process.env['PGSQL_HOST'],
-        port: process.env['PGSQL_PORT'],
-        database: process.env['PGSQL_DATABASE'],
-        user: process.env['PGSQL_USERNAME'],
-        password: process.env['PGSQL_PASSWORD'],
-    });
-    await db.connect();
+const pool = new Pool();
 
-    console.log("DB connection established");
-})();
+async function getConnection() {
+    let startedAt = Date.now();
 
-module.exports = db;
+    let client = null;
+    while (client === null) {
+        try {
+            client = await pool.connect();
+        } catch (error) {
+            let elapsedTime = (Date.now() - startedAt) / 1000;
+            console.error(`DB connection trial failed. ${elapsedTime.toFixed(1)}s passed...`);
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+    }
+    return client;
+}
+
+async function query(text, params) {
+    const client = await getConnection();
+    try {
+        return client.query(text, params);
+    } finally {
+        client.release();
+    }
+}
+
+module.exports = {
+    getConnection,
+    query,
+};

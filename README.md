@@ -24,8 +24,9 @@ Instantiate the containers:
 docker compose up
 ```
 
-If it's the first time runnning this application you need to initialize the DB schemas:
+Migrate and seed the DB to the latest version. This commands may also be useful whether upgrading the application:
 ```
+
 ```
 
 Run the application:
