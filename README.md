@@ -24,7 +24,7 @@ Instantiate the containers:
 docker compose up
 ```
 
-Migrate and seed the DB to the latest version. This commands may also be useful whether upgrading the application:
+Migrate and seed the DB to the latest version. These commands are also useful when upgrading the application:
 ```
 docker compose exec -w /usr/local/app app sh -c "node src/migrate.js"
 docker compose exec -w /usr/local/app app sh -c "node src/seed.js"
