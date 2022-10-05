@@ -26,14 +26,14 @@ docker compose up
 
 Migrate and seed the DB to the latest version. This commands may also be useful whether upgrading the application:
 ```
-
+docker exec -w /usr/local/app my-finance-app-1 sh -c "node src/migrate.js"
+docker exec -w /usr/local/app my-finance-app-1 sh -c "node src/seed.js"
 ```
 
-Run the application:
+Finally start the application:
 ```
-docker exec my-finance-app -w usr/local/app "node src/main.js"
+docker exec -w usr/local/app my-finance-app-1 sh -c "node src/main.js"
 ```
-
 
 ## How to use
 
