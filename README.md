@@ -21,7 +21,7 @@ Copy `.env.example` to `.env` and value `TELEGRAM_BOT_TOKEN` with your Telegram 
 
 Instantiate the containers:
 ```
-docker compose up
+docker compose up -d
 ```
 
 Migrate and seed the DB to the latest version. These commands are also useful when upgrading the application:
