@@ -21,7 +21,7 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg ma
 
 COPY . /usr/local/my-finance/
 
-COPY ./backup/crontab /etc/cron.d/my-cron
+RUN crontab -l | { cat; echo "0 0 * * * cd /usr/local/my-finance && /bin/bash ./backup/run.sh"; } | crontab -
 
 RUN cd /usr/local/my-finance/backup && \
     npm install
