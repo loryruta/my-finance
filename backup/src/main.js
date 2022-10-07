@@ -1,9 +1,12 @@
 const {google} = require('googleapis');
 const path = require('path');
 const fs = require('fs');
+const TelegramBot = require('node-telegram-bot-api');
+
+require('dotenv').config();
 
 const auth = new google.auth.GoogleAuth({
-    keyFile: path.join(__dirname, '../../google_auth.json'),
+    keyFile: 'google_auth.json',
     scopes: [
         'https://www.googleapis.com/auth/drive.file'
     ],
@@ -13,6 +16,10 @@ google.options({auth});
 
 const drive = google.drive('v3');
 
+const tgBot = new TelegramBot(process.env['TELEGRAM_BOT_TOKEN'], {polling: true});
+
+// ------------------------------------------------------------------------------------------------
+// Google Drive
 // ------------------------------------------------------------------------------------------------
 
 async function listFiles(parentFolderId) {
@@ -62,6 +69,8 @@ async function wipeEverythingOffTheFaceOfTheEarth() {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
+
 async function upload(filename) {
     const folderName = "my-finance-backups";
 
@@ -97,6 +106,9 @@ async function upload(filename) {
     });
     console.log(`Backup "${backupName}" uploaded`);
 
+    // Report on Telegram
+    await tgBot.sendMessage(process.env['TELEGRAM_ADMIN_CHAT_ID'], `Backup ${backupName} uploaded`);
+
     return response;
 }
 
@@ -104,11 +116,25 @@ async function upload(filename) {
 // Main
 // ------------------------------------------------------------------------------------------------
 
-if (module === require.main) {
+async function main() {
     // DEBUG (VERY DANGEROUS) wipeEverythingOffTheFaceOfTheEarth().catch(console.error);
 
     const filename = process.argv[2];
+
     console.log(`Uploading backup saved at ${filename}`);
-    upload(filename)
-        .catch(console.error);
+   
+    try {
+        await upload(filename);
+    } catch (error) {
+        console.error(error);
+        await tgBot.sendMessage(process.env['TELEGRAM_ADMIN_CHAT_ID'], `Backup ${filename} failed`);
+        
+        process.exit(1);
+    }
+
+    process.exit(0); // TODO: How do I cleanly close the TelegramBot?
+}
+
+if (module === require.main) {
+    main();
 }

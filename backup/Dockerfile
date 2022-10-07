@@ -21,11 +21,10 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg ma
 
 COPY . /usr/local/my-finance/
 
-COPY ./backup/crontab /etc/cron.d/backup-cron
+COPY ./backup/crontab /etc/cron.d/my-cron
 
-WORKDIR /usr/local/my-finance/backup
-
-RUN npm install
+RUN cd /usr/local/my-finance/backup && \
+    npm install
 
 RUN touch /var/log/cron.log
 
