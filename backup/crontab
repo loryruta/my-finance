@@ -1,0 +1,1 @@
+0 * * * * cd /usr/local/my-finance/ && /bin/bash run.sh

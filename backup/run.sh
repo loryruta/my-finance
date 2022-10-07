@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export $(cat .env | dos2unix | xargs)
-
 SCRIPT_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
+
+export $(cat $SCRIPT_DIR/.env | dos2unix | xargs)
 
 DATE=$(date +%Y-%m-%d-%H-%M-%S)
 DUMP_FILE=/tmp/pgsql-backup-$DATE.sql
@@ -13,3 +13,6 @@ tar -cf $ARCHIVE_FILE $DUMP_FILE
 
 # Google Drive upload
 node $SCRIPT_DIR/src/gdrive.js $ARCHIVE_FILE
+
+rm $DUMP_FILE
+rm $ARCHIVE_FILE
