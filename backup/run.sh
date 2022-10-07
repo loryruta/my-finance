@@ -2,7 +2,7 @@
 
 SCRIPT_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 
-export $(cat $SCRIPT_DIR/.env | dos2unix | xargs)
+export $(cat $SCRIPT_DIR/../.env | dos2unix | xargs)
 
 DATE=$(date +%Y-%m-%d-%H-%M-%S)
 DUMP_FILE=/tmp/pgsql-backup-$DATE.sql
