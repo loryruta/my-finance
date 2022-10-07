@@ -131,4 +131,5 @@ dist
 
 # My app
 config.json
-.mount
+google_auth.json
+.vscode

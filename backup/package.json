@@ -1,0 +1,9 @@
+{
+  "name": "my-finance-backup",
+  "version": "1.0",
+  "author": "loryruta",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "googleapis": "^108.0.0"
+  }
+}

@@ -10,6 +10,14 @@ services:
     volumes:
       - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    depends_on:
+      - db
+  backup:
+    build:
+      context: .
+      dockerfile: backup/Dockerfile
     depends_on:
       - db
