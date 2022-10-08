@@ -6,7 +6,7 @@ const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
 const auth = new google.auth.GoogleAuth({
-    keyFile: 'google_auth.json',
+    keyFile: 'gauth.json',
     scopes: [
         'https://www.googleapis.com/auth/drive.file'
     ],
