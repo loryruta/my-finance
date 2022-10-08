@@ -1,10 +1,14 @@
 #!/bin/bash
 
-SCRIPT_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 
 cd "$SCRIPT_DIR/.."
 
-export $(cat .env | dos2unix | xargs)
+PGHOST=`cat ./config.json` | jq -r ".pgsql.host"
+PGPORT=`cat ./config.json` | jq -r ".pgsql.port"
+PGUSER=`cat ./config.json` | jq -r ".pgsql.user"
+PGDATABASE=`cat ./config.json` | jq -r ".pgsql.database"
+# TODO password not supported
 
 DATE=$(date +%Y-%m-%d-%H-%M-%S)
 DUMP_FILE=/tmp/pgsql-backup-$DATE.sql

@@ -2,8 +2,7 @@ const {google} = require('googleapis');
 const path = require('path');
 const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
-
-require('dotenv').config();
+const config = require('../../config'); // TODO horrible relative path (can be avoided?)
 
 const auth = new google.auth.GoogleAuth({
     keyFile: 'gauth.json',
@@ -16,7 +15,7 @@ google.options({auth});
 
 const drive = google.drive('v3');
 
-const tgBot = new TelegramBot(process.env['TELEGRAM_BOT_TOKEN'], {polling: true});
+const tgBot = new TelegramBot(config.telegram.token, { polling: false });
 
 // ------------------------------------------------------------------------------------------------
 // Google Drive
@@ -107,7 +106,7 @@ async function upload(filename) {
     console.log(`Backup "${backupName}" uploaded`);
 
     // Report on Telegram
-    await tgBot.sendMessage(process.env['TELEGRAM_ADMIN_CHAT_ID'], `Backup ${backupName} uploaded`);
+    await tgBot.sendMessage(config.telegramSpamChatId, `Backup ${backupName} uploaded`);
 
     return response;
 }
@@ -127,14 +126,16 @@ async function main() {
         await upload(filename);
     } catch (error) {
         console.error(error);
-        await tgBot.sendMessage(process.env['TELEGRAM_ADMIN_CHAT_ID'], `Backup ${filename} failed`);
-        
-        process.exit(1);
-    }
+        await tgBot.sendMessage(config.telegramSpamChatId, `Backup ${filename} failed`);
 
-    process.exit(0); // TODO: How do I cleanly close the TelegramBot?
+        return 1;
+    }
+    
+    return 0;
 }
 
 if (module === require.main) {
-    main();
+    main()
+        .then(process.exit)
+        .catch(console.error);
 }

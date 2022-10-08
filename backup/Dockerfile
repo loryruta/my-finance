@@ -8,7 +8,7 @@ RUN apt-get install -y \
         lsb-release \
         wget \
         nano \
-        dos2unix
+        jq
 
 RUN apt-get install -y \
     nodejs \
