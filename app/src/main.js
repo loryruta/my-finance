@@ -1,10 +1,8 @@
-const dotenv = require('dotenv');
 const TelegramBot = require('node-telegram-bot-api');
 const bcrypt = require('bcrypt');
 const moment = require('moment');
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 require('chartjs-adapter-moment');
-const Util = require('util');
 
 const db = require('./db');
 const { User } = require('./user');
@@ -14,8 +12,6 @@ const { Wallet } = require('./wallet');
 // ------------------------------------------------------------------------------------------------
 // Initialization
 // ------------------------------------------------------------------------------------------------
-
-dotenv.config();
 
 // Telegram bot
 const botToken = process.env['TELEGRAM_BOT_TOKEN'];
