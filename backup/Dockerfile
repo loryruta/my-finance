@@ -21,9 +21,10 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg ma
     apt-get update -y && \
     apt-get install -y postgresql-client-14
 
+COPY . /usr/local/my-finance/
+
 WORKDIR /usr/local/my-finance/backup/
 
-COPY . /usr/local/my-finance/
 RUN npm install
 
 RUN crontab -l | { cat; echo "0 0 * * * cd /usr/local/my-finance && /bin/bash ./backup/scripts/run.sh"; } | crontab -

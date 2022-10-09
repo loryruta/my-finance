@@ -35,9 +35,10 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg ma
     apt-get update -y && \
     apt-get install -y postgresql-client-14
 
+COPY . /usr/local/my-finance/
+
 WORKDIR /usr/local/my-finance/app/
 
-COPY . .
 RUN npm install
 
 ENTRYPOINT ["tail", "-f", "/dev/null"]
