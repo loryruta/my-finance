@@ -1,4 +1,3 @@
-
 CREATE DATABASE "my-finance";
 
 \c "my-finance";

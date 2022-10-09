@@ -15,8 +15,9 @@ PGUSER=$(cat ./config.json | jq -r ".pgsql.user")
 PGDATABASE=$(cat ./config.json | jq -r ".pgsql.database")
 # TODO password not supported
 
+APP_VERSION=$(cat ./app/package.json | jq -r ".version")
 DATE=$(date +%Y-%m-%d-%H-%M-%S)
-DUMP_FILE=/tmp/pgsql-backup-$DATE.sql
+DUMP_FILE=/tmp/pgsql-backup-$APP_VERSION-$DATE.sql
 
 echo "Dumping DB to $DUMP_FILE"
 
