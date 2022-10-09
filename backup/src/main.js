@@ -1,8 +1,7 @@
 const {google} = require('googleapis');
 const path = require('path');
 const fs = require('fs');
-const TelegramBot = require('node-telegram-bot-api');
-const config = require('../../config'); // TODO horrible relative path (can be avoided?)
+const moment = require('moment');
 
 const auth = new google.auth.GoogleAuth({
     keyFile: 'gauth.json',
@@ -15,21 +14,30 @@ google.options({auth});
 
 const drive = google.drive('v3');
 
-const tgBot = new TelegramBot(config.telegram.token, { polling: false });
+const backupFolderName = "my-finance-backups"; // TODO configure it in config.json ?
 
 // ------------------------------------------------------------------------------------------------
 // Google Drive
 // ------------------------------------------------------------------------------------------------
 
-async function listFiles(parentFolderId) {
+async function listFiles(parentFolderId, modifiedTime) {
+    let searchQuery = [
+        `mimeType != 'application/vnd.google-apps.folder'`
+    ];
+
+    if (modifiedTime != null) {
+        searchQuery.push(`modifiedTime > '${modifiedTime.format()}'`);
+    }
+
     const response = await drive.files.list({
         fields: 'files(id,name,mimeType)',
-        parents: parentFolderId != null ? [parentFolderId] : []
+        parents: parentFolderId != null ? [parentFolderId] : [],
+        q: searchQuery.join(" and "),
     });
     return response.data.files;
 }
 
-async function getFolderId(name) {
+async function getFileId(name) {
     const response = await drive.files.list({
         fields: 'files(id,name)',
         q: `name="${name}"`
@@ -60,10 +68,8 @@ async function deleteFile(fileId) {
     return result;
 }
 
-// DEBUG
-async function wipeEverythingOffTheFaceOfTheEarth() {
-    for (let file of (await listFiles())) {
-        console.log(`Deleting ${file.name} (${file.id})`);
+async function clearAll(parentFolderId) {
+    for (let file of (await listFiles(parentFolderId))) {
         await deleteFile(file.id);
     }
 }
@@ -71,14 +77,12 @@ async function wipeEverythingOffTheFaceOfTheEarth() {
 // ------------------------------------------------------------------------------------------------
 
 async function upload(filename) {
-    const folderName = "my-finance-backups";
-
-    let folderId = await getFolderId(folderName);
+    let folderId = await getFileId(backupFolderName);
 
     // Create folder
     if (folderId === null) {
-        folderId = await createFolder(folderName);
-        console.log(`Created folder: "${folderName}" (${folderId})`);
+        folderId = await createFolder(backupFolderName);
+        console.log(`Created folder: "${backupFolderName}" (${folderId})`);
     }
 
     // Display some of the current backups
@@ -105,37 +109,89 @@ async function upload(filename) {
     });
     console.log(`Backup "${backupName}" uploaded`);
 
-    // Report on Telegram
-    await tgBot.sendMessage(config.telegramSpamChatId, `Backup ${backupName} uploaded`);
-
     return response;
+}
+
+// ------------------------------------------------------------------------------------------------
+// Commands
+// ------------------------------------------------------------------------------------------------
+
+async function onUploadCommand() {
+    if (process.argv.length < 4) {
+        console.error(`Invalid syntax: node main.js upload <backup-filename>`);
+        return;
+    }
+
+    const filename = process.argv[3];
+    try {
+        await upload(filename);
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+async function onListCommand() {
+    const backupFolderId = await getFileId(backupFolderName);
+    if (backupFolderId !== null) {
+        const filesSince = moment().subtract(5, 'days');
+        const files = (await listFiles(backupFolderId, filesSince))
+            .map(file => file.name)
+            .sort((a, b) => b.localeCompare(a));
+
+        for (file of files) {
+            console.log(file);
+        }
+    }
+}
+
+async function onClearAllCommand() {
+    let folderId = await getFileId(backupFolderName);
+    if (folderId !== null) {
+        await clearAll(folderId);
+    }
+}
+
+async function onDownloadCommand() {
+    if (process.argv.length < 5) {
+        console.error(`Invalid syntax: node main.js download <remote-filename> <local-filename>`);
+        return;
+    }
+
+    const remoteFilename = process.argv[3];
+    const localFilename = process.argv[4];
+
+    const fileId = await getFileId(remoteFilename);
+    if (fileId == null) {
+        return 1;
+    }
+
+    const file = await drive.files.get({
+        fileId: fileId,
+        alt: 'media',
+    });
+    fs.writeFileSync(localFilename, file.data);
+    return 0;
 }
 
 // ------------------------------------------------------------------------------------------------
 // Main
 // ------------------------------------------------------------------------------------------------
 
-async function main() {
-    // DEBUG (VERY DANGEROUS) wipeEverythingOffTheFaceOfTheEarth().catch(console.error);
+(async () => {
+    const commands = {
+        "upload": onUploadCommand,
+        "list": onListCommand,
+        "clearall": onClearAllCommand,
+        "download": onDownloadCommand,
+    };
 
-    const filename = process.argv[2];
-
-    console.log(`Uploading backup saved at ${filename}`);
-   
-    try {
-        await upload(filename);
-    } catch (error) {
-        console.error(error);
-        await tgBot.sendMessage(config.telegramSpamChatId, `Backup ${filename} failed`);
-
-        return 1;
+    if (process.argv.length < 3 || !(process.argv[2] in commands)) {
+        console.error(`Invalid syntax: node main.js <upload|list|download|apply> ...`);
+        return;
     }
-    
-    return 0;
-}
 
-if (module === require.main) {
-    main()
-        .then(process.exit)
-        .catch(console.error);
-}
+    process.exit(
+        await commands[process.argv[2]]()
+    );
+})()
+    .catch(console.error);
