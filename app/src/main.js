@@ -6,7 +6,7 @@ require('chartjs-adapter-moment');
 
 const db = require('./db');
 const { User } = require('./user');
-const config = require('../config');
+const config = require('../../config');
 const { Wallet } = require('./wallet');
 
 // ------------------------------------------------------------------------------------------------
@@ -14,8 +14,7 @@ const { Wallet } = require('./wallet');
 // ------------------------------------------------------------------------------------------------
 
 // Telegram bot
-const botToken = process.env['TELEGRAM_BOT_TOKEN'];
-const bot = new TelegramBot(botToken, {polling: true});
+const bot = new TelegramBot(config.telegram.token, { polling: true });
 
 const chartJsRenderer = new ChartJSNodeCanvas({ type: 'png', width: 800, height: 600 });
 
@@ -369,7 +368,7 @@ async function onConfirmDestroyWalletCallbackQuery(query) {
 bot.onText(/\/([^\s]+)/, async (message, match) => {
     const chatId = message.chat.id;
 
-    if (!config["acceptedChatId"].includes(chatId)) {
+    if (!config.telegram.acceptedChatIds.includes(chatId)) {
         bot.sendMessage(chatId, "You're not allowed to use this bot");
         return;
     }

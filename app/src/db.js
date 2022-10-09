@@ -1,8 +1,13 @@
 const { Pool } = require('pg');
+const config = require('../../config'); // TODO Awful relative path
 
-require('dotenv').config();
-
-const pool = new Pool();
+const pool = new Pool({
+    host: config.pgsql.host,
+    port: config.pgsql.port,
+    database: config.pgsql.database,
+    user: config.pgsql.user,
+    password: config.pgsql.password,
+});
 
 async function getConnection() {
     let startedAt = Date.now();
@@ -30,7 +35,12 @@ async function query(text, params) {
     }
 }
 
+async function end() {
+    await pool.end();
+}
+
 module.exports = {
     getConnection,
     query,
+    end,
 };

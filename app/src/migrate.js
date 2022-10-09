@@ -32,6 +32,8 @@ const path = require('path');
         }
     }
 
-    console.log("DB successfully migrated");
+    console.log("DB migrated");
+
+    await db.end();
 })();
 
