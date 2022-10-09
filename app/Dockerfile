@@ -37,8 +37,7 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg ma
 
 WORKDIR /usr/local/my-finance/app/
 
-# TODO PRODUCTION ONLY
-#COPY . .
-#RUN npm install
+COPY . .
+RUN npm install
 
 ENTRYPOINT ["tail", "-f", "/dev/null"]

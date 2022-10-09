@@ -1,0 +1,7 @@
+services:
+  app:
+    volumes:
+      - .:/usr/local/my-finance
+  backup:
+    volumes:
+      - .:/usr/local/my-finance
