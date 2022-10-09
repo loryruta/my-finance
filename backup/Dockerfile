@@ -26,7 +26,7 @@ WORKDIR /usr/local/my-finance/backup/
 COPY . /usr/local/my-finance/
 RUN npm install
 
-RUN crontab -l | { cat; echo "0 0 * * * cd /usr/local/my-finance && /bin/bash ./backup/run.sh"; } | crontab -
+RUN crontab -l | { cat; echo "0 0 * * * cd /usr/local/my-finance && /bin/bash ./backup/scripts/run.sh"; } | crontab -
 
 RUN touch /var/log/cron.log
 
