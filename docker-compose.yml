@@ -13,15 +13,11 @@ services:
     build:
       context: .
       dockerfile: app/Dockerfile
-    volumes:
-      - .:/usr/local/my-finance
     depends_on:
       - db
   backup:
     build:
       context: .
       dockerfile: backup/Dockerfile
-    volumes:
-      - .:/usr/local/my-finance
     depends_on:
       - db
