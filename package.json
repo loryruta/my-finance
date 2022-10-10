@@ -8,7 +8,8 @@
     "googleapis": "^108.0.0",
     "moment": "^2.29.4",
     "node-telegram-bot-api": "^0.59.0",
-    "sqlite3": "^5.1.2"
+    "sqlite3": "^5.1.2",
+    "string-argv": "^0.3.1"
   },
   "name": "my-finance",
   "version": "0.1",

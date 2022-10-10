@@ -37,11 +37,16 @@ class Wallet extends Model {
     }
     
     async getVariations(period) {
+        if (!['day', 'week', 'month', 'year'].includes(period)) {
+            throw "Bad idea!"; // Smartly avoid the risk of SQL injection
+        }
+        
         let sql = util.format(`
             SELECT * FROM variations
             WHERE
                 "id_wallet" = ? AND
                 "timestamp" >= DATETIME('now', '-1 %s')
+            ORDER BY "timestamp" ASC
         `, period);
         let rows = await db.all(sql, [this.id]);
         return rows;

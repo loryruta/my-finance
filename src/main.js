@@ -4,6 +4,7 @@ const db = require('./db');
 const { User } = require('./user');
 const config = require('../config');
 const { Wallet } = require('./wallet');
+const { parseArgsStringToArgv } = require('string-argv');
 
 // ------------------------------------------------------------------------------------------------
 // Initialization
@@ -129,7 +130,7 @@ function requireSelectedWallet(wrapped) {
 // Commands
 // ------------------------------------------------------------------------------------------------
 
-const onLoginCommand = async function (message) {
+const onLoginCommand = async function (message, parsedArgs) {
     const chatId = message.chat.id;
 
     if ((await getUserIdFromChatId(chatId)) !== null) {
@@ -141,7 +142,7 @@ const onLoginCommand = async function (message) {
     bot.sendMessage(chatId, "Insert your username");
 }
 
-const onLogoutCommand = requireLogin(async function (message) {
+const onLogoutCommand = requireLogin(async function (message, parsedArgs) {
     const chatId = message.chat.id;
 
     await db.run(`DELETE FROM sessions WHERE id_chat=?`, [chatId]);
@@ -149,17 +150,17 @@ const onLogoutCommand = requireLogin(async function (message) {
     bot.sendMessage(chatId, "Successfully logged out");
 });
 
-const onCreateWalletCommand = requireLogin(async function (message) {
+const onCreateWalletCommand = requireLogin(async function (message, parsedArgs) {
     const chatId = message.chat.id;
     const user = await getUserFromChatId(chatId);
     
-    let matches = message.text.split(/\s(.*)/);
-    if (matches[1] === undefined) {
+    if (parsedArgs.length < 1) {
         bot.sendMessage(chatId, "Invalid command usage: /create <title>");
         return;
     }
 
-    const title = matches[1];
+    const title = parsedArgs.join(' ');
+
     if (title.length >= 256) {
         bot.sendMessage(chatId, "Title must be at most 256 characters");
         return;
@@ -175,7 +176,7 @@ const onCreateWalletCommand = requireLogin(async function (message) {
     bot.sendMessage(chatId, `Wallet "${title}" created successfully`);
 });
 
-const onDestroyWalletCommand = requireLogin(requireSelectedWallet(async function (message) {
+const onDestroyWalletCommand = requireLogin(requireSelectedWallet(async function (message, parsedArgs) {
     const chatId = message.chat.id;
     const user = await getUserFromChatId(chatId);
     const wallet = await user.getSelectedWallet();
@@ -196,7 +197,7 @@ const onDestroyWalletCommand = requireLogin(requireSelectedWallet(async function
     };
 }));
 
-const onSelectWalletCommand = requireLogin(async function (message) {
+const onSelectWalletCommand = requireLogin(async function (message, parsedArgs) {
     const chatId = message.chat.id;
 
     const user = await getUserFromChatId(chatId);
@@ -222,28 +223,25 @@ const onSelectWalletCommand = requireLogin(async function (message) {
     context[chatId] = { callbackQuery: "select_wallet" };
 });
 
-const onAddVariationCommand = requireLogin(requireSelectedWallet(async function (message) {
+const onAddVariationCommand = requireLogin(requireSelectedWallet(async function (message, parsedArgs) {
     const chatId = message.chat.id;
-
     const user = await getUserFromChatId(chatId);
     const wallet = await user.getSelectedWallet();
 
-    const matches = message.text.match(/(\/[^\s]+)\s([^\s]+)(?:\s+(.*))?/);
-
-    if (!matches || !matches[2] || isNaN(parseFloat(matches[2]))) {
+    if (parsedArgs.length < 1 || isNaN(parseFloat(parsedArgs[0]))) {
         await bot.sendMessage(chatId, "Invalid usage: /add <amount> [note]");
         return;
     }
 
-    let amount = parseFloat(matches[2]);
-    let note = matches[3];
+    let amount = parseFloat(parsedArgs[0]);
+    let note = parsedArgs.slice(1).join(" ");
 
     await wallet.addVariation(amount, null, note); // timestamp can't be specified by this command
 
     await bot.sendMessage(chatId, `Added variation of ${amount}${note ? ` "${note}"`: ''}`);
 }));
 
-const onRemoveLastVariationCommand = requireLogin(requireSelectedWallet(async function (message) {
+const onRemoveLastVariationCommand = requireLogin(requireSelectedWallet(async function (message, parsedArgs) {
     const chatId = message.chat.id;
 
     const user = await getUserFromChatId(chatId);
@@ -257,15 +255,39 @@ const onRemoveLastVariationCommand = requireLogin(requireSelectedWallet(async fu
     }
 }));
 
-const onChartCommand = requireLogin(requireSelectedWallet(async function (message) {
+const onChartCommand = requireLogin(requireSelectedWallet(async function (message, parsedArgs) {
     const chatId = message.chat.id;
 
     const user = await getUserFromChatId(chatId);
-    const wallet = await user.getSelectedWallet();
 
     // TODO (VERY IMPORTANT): RATE LIMIT THE NUMBER OF CHARTS THAT CAN BE GENERATED
 
-    const variations = await wallet.getVariations('month');
+    // /chart [period=month] [wallet-regex]
+
+    let period = 'month';
+    if (parsedArgs.length >= 1) {
+        period = parsedArgs[0];
+    }
+
+    let variations = [];
+    if (parsedArgs.length >= 2) {
+        const regex = parsedArgs.slice(1).join(' ');
+        variations = await user.getVariations(period, regex);
+    } else {
+        const wallet = await user.getSelectedWallet();
+        if (wallet === null) {
+            await bot.sendMessage(`No wallet specified. Either /select a wallet or specify it as an argument`);
+            return;
+        }
+        variations = await wallet.getVariations(period);
+    }
+
+    // Yup, we're iterating them, like in the good ol' days :)
+    let sum = 0;
+    for (let variation of variations) {
+        variation.incrementalAmount = sum;
+        sum += variation.amount;
+    }
 
 	const configuration = {
 		type: "line",
@@ -275,7 +297,7 @@ const onChartCommand = requireLogin(requireSelectedWallet(async function (messag
                     data: variations.map(variation => {
                         return {
                             x: variation.timestamp,
-                            y: variation.amount,
+                            y: variation.incrementalAmount,
                         };
                     }),
                     fill: false,
@@ -302,7 +324,7 @@ const onChartCommand = requireLogin(requireSelectedWallet(async function (messag
     await bot.sendPhoto(
         chatId,
         imageBuffer,
-        { caption: `Chart of wallet "${await wallet.getAttribute("title")}"` },
+        { caption: `Here's your chart \u{1F642}` },
         { filename: 'chart.png', contentType: 'image/png' }
     );
 }));
@@ -366,23 +388,28 @@ async function onConfirmDestroyWalletCallbackQuery(query) {
 // Telegram event hooks
 // ------------------------------------------------------------------------------------------------
 
-bot.onText(/\/([^\s]+)/, async (message, match) => {
+// Command handler
+bot.on('message', async (message) => {
     const chatId = message.chat.id;
+    const text = message.text;
 
     if (!config.telegram.acceptedChatIds.includes(chatId)) {
         bot.sendMessage(chatId, "You're not allowed to use this bot");
         return;
     }
 
-    const command = match[1];
+    const argv = parseArgsStringToArgv(text);
+
+    const command = argv[0].slice(1);
+    const commandArgs = argv.slice(1);
 
     if (command in commands) {
-        await commands[command].callback(message);
-    } else {
-        // Nothing
+        console.log(`Executing command "${command}"${commandArgs.length > 0 ? ' with args ' + commandArgs.join(", ") : ''}`);
+        await commands[command].callback(message, commandArgs);
     }
 });
 
+// Callback query handler
 bot.on('callback_query', async query => {
     const chatId = query.message.chat.id;
     if (context[chatId] && context[chatId].callbackQuery) {
