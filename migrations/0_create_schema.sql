@@ -17,7 +17,7 @@ CREATE TABLE "sessions" (
 CREATE TABLE "wallets" (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     id_user INTEGER NOT NULL,
-    title VARCHAR(256) NOT NULL,
+    title VARCHAR(256) NOT NULL UNIQUE,
     FOREIGN KEY (id_user) REFERENCES users(id)
         ON DELETE CASCADE
 );

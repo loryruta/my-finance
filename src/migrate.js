@@ -42,7 +42,7 @@ async function main() {
             for (let query of migrationQueries) {
                 await db.run(query);
             }
-            await db.run(`INSERT INTO "migrations" (filename, timestamp) VALUES ($1, DATE('now'))`, [migration]);
+            await db.run(`INSERT INTO "migrations" (filename, timestamp) VALUES (?, DATETIME('now'))`, [migration]);
             await db.run(`COMMIT`);
         }
 

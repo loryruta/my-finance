@@ -1,9 +1,5 @@
-const TelegramBot = require('node-telegram-bot-api');
 const bcrypt = require('bcrypt');
 const moment = require('moment');
-const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
-require('chartjs-adapter-moment');
-
 const db = require('./db');
 const { User } = require('./user');
 const config = require('../config');
@@ -14,13 +10,20 @@ const { Wallet } = require('./wallet');
 // ------------------------------------------------------------------------------------------------
 
 // Telegram bot
+console.log(`Initializing Telegram bot...`);
+
+const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(config.telegram.token, { polling: true });
 
-const chartJsRenderer = new ChartJSNodeCanvas({ type: 'png', width: 800, height: 600 });
+// Chart.js node-canvas
+console.log(`Initializing Node.js canvas...`);
 
-function convertCurrencyToNumber(currency) {
-    return Number(currency.replace(/[^0-9.-]+/g, ""));
-}
+const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
+require('chartjs-adapter-moment');
+
+const chartJsRenderer = new ChartJSNodeCanvas({ type: 'png', width: 720, height: 512 });
+
+console.log(`Initialization ended`);
 
 // ------------------------------------------------------------------------------------------------
 
@@ -48,7 +51,7 @@ bot.on('message', async message => {
 
         let failed = true;
 
-        let rows = await db.all(`SELECT * FROM users WHERE "user"=$1`, [myUsername]);
+        let rows = await db.all(`SELECT * FROM users WHERE "user"=?`, [myUsername]);
         if (rows.length > 0) {
             const row = rows[0];
             const userId = row['id'];
@@ -58,8 +61,8 @@ bot.on('message', async message => {
                 const sessionValidUntil = moment().add(1, 'week');
                 
                 await db.run(`BEGIN`);
-                await db.run(`DELETE FROM sessions WHERE id_user=$1`, [userId]);
-                await db.run(`INSERT INTO sessions (id_chat, id_user, valid_until) VALUES ($1, $2, $3)`, [chatId, userId, sessionValidUntil]);
+                await db.run(`DELETE FROM sessions WHERE id_user=?`, [userId]);
+                await db.run(`INSERT INTO sessions (id_chat, id_user, valid_until) VALUES (?, ?, ?)`, [chatId, userId, sessionValidUntil]);
                 await db.run(`COMMIT`);
 
                 bot.sendMessage(chatId, "Logged in successfully");
@@ -78,7 +81,7 @@ bot.on('message', async message => {
 });
 
 async function getUserIdFromChatId(chatId) {
-    let rows = await db.all(`SELECT * FROM sessions WHERE id_chat=$1`, [chatId]);
+    let rows = await db.all(`SELECT * FROM sessions WHERE id_chat=?`, [chatId]);
     if (rows.length === 0 /* TODO || invalid session */) {
         return null;
     } else {
@@ -141,7 +144,7 @@ const onLoginCommand = async function (message) {
 const onLogoutCommand = requireLogin(async function (message) {
     const chatId = message.chat.id;
 
-    await db.run(`DELETE FROM sessions WHERE id_chat=$1`, [chatId]);
+    await db.run(`DELETE FROM sessions WHERE id_chat=?`, [chatId]);
 
     bot.sendMessage(chatId, "Successfully logged out");
 });
@@ -172,7 +175,7 @@ const onCreateWalletCommand = requireLogin(async function (message) {
     bot.sendMessage(chatId, `Wallet "${title}" created successfully`);
 });
 
-const onDestroyWalletCommand = requireSelectedWallet(requireLogin(async function (message) {
+const onDestroyWalletCommand = requireLogin(requireSelectedWallet(async function (message) {
     const chatId = message.chat.id;
     const user = await getUserFromChatId(chatId);
     const wallet = await user.getSelectedWallet();
@@ -219,7 +222,7 @@ const onSelectWalletCommand = requireLogin(async function (message) {
     context[chatId] = { callbackQuery: "select_wallet" };
 });
 
-const onAddVariationCommand = requireSelectedWallet(requireLogin(async function (message) {
+const onAddVariationCommand = requireLogin(requireSelectedWallet(async function (message) {
     const chatId = message.chat.id;
 
     const user = await getUserFromChatId(chatId);
@@ -240,7 +243,7 @@ const onAddVariationCommand = requireSelectedWallet(requireLogin(async function 
     await bot.sendMessage(chatId, `Added variation of ${amount}${note ? ` "${note}"`: ''}`);
 }));
 
-const onRemoveLastVariationCommand = requireSelectedWallet(requireLogin(async function (message) {
+const onRemoveLastVariationCommand = requireLogin(requireSelectedWallet(async function (message) {
     const chatId = message.chat.id;
 
     const user = await getUserFromChatId(chatId);
@@ -254,7 +257,7 @@ const onRemoveLastVariationCommand = requireSelectedWallet(requireLogin(async fu
     }
 }));
 
-const onChartCommand = requireSelectedWallet(requireLogin(async function (message) {
+const onChartCommand = requireLogin(requireSelectedWallet(async function (message) {
     const chatId = message.chat.id;
 
     const user = await getUserFromChatId(chatId);
@@ -269,11 +272,10 @@ const onChartCommand = requireSelectedWallet(requireLogin(async function (messag
 		data: {
 			datasets: [
                 {
-                    //label: await wallet.getAttribute("title"),
                     data: variations.map(variation => {
                         return {
                             x: variation.timestamp,
-                            y: convertCurrencyToNumber(variation.incremental_amount)
+                            y: variation.amount,
                         };
                     }),
                     fill: false,
@@ -397,3 +399,5 @@ bot.on('callback_query', async query => {
         delete context[chatId].callbackQuery;
     }
 });
+
+console.log(`Bot is running`);

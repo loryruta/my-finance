@@ -9,12 +9,8 @@ class Wallet extends Model {
 
     async addVariation(amount, timestamp, note) {
         await db.all(`
-            INSERT INTO variations (id_wallet, amount, timestamp, note, incremental_amount)
-            SELECT $1, $2, COALESCE($3, NOW()), $4, (
-                SELECT COALESCE(SUM(amount), 0::money) + $2::money FROM variations AS t1
-                WHERE
-                    t1.id_wallet = $1
-            )`, [
+            INSERT INTO variations (id_wallet, amount, timestamp, note)
+            SELECT ?, ?, COALESCE(?, DATETIME('now')), ?`, [
             this.id,
             amount,
             timestamp,
@@ -26,7 +22,10 @@ class Wallet extends Model {
         let rows = await db.run(`
             DELETE FROM variations AS t1
             WHERE
-                t1."timestamp" >= ALL(SELECT t2."timestamp" FROM variations AS t2 WHERE t2.id_wallet = t1.id_wallet)
+                t1."timestamp" >= (
+                    SELECT MAX(t2 ."timestamp") FROM variations AS t2
+                    WHERE t2.id_wallet = t1.id_wallet
+                )
             RETURNING *
         `);
 
@@ -41,8 +40,8 @@ class Wallet extends Model {
         let sql = util.format(`
             SELECT * FROM variations
             WHERE
-                id_wallet = $1 AND
-                timestamp >= now() - interval '1 %s'
+                "id_wallet" = ? AND
+                "timestamp" >= DATETIME('now', '-1 %s')
         `, period);
         let rows = await db.all(sql, [this.id]);
         return rows;

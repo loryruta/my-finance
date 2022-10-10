@@ -6,7 +6,7 @@ const bcryptSaltRounds = 10;
 
 async function insertUser(username, password) {
     const digest = bcrypt.hashSync(password, bcryptSaltRounds);
-    await db.run(`INSERT INTO users ("user", "password_digest") VALUES ($1, $2)`, [username, digest]);
+    await db.run(`INSERT INTO users ("user", "password_digest") VALUES (?, ?)`, [username, digest]);
 }
 
 async function main() {
