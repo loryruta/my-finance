@@ -5,10 +5,10 @@
     "chart.js": "^3.9.1",
     "chartjs-adapter-moment": "^1.0.0",
     "chartjs-node-canvas": "^4.1.6",
+    "googleapis": "^108.0.0",
     "moment": "^2.29.4",
     "node-telegram-bot-api": "^0.59.0",
-    "pg": "^8.8.0",
-    "pg-format": "^1.0.4"
+    "sqlite3": "^5.1.2"
   },
   "name": "my-finance",
   "version": "0.1",
@@ -21,8 +21,8 @@
     "type": "git",
     "url": "git+https://github.com/loryruta/my-finance.git"
   },
-  "author": "loryruta",
-  "license": "GPL3",
+  "author": "Lorenzo Rutayisire (loryruta)",
+  "license": "GPL-3.0",
   "bugs": {
     "url": "https://github.com/loryruta/my-finance/issues"
   },

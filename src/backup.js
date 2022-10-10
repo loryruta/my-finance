@@ -1,7 +1,19 @@
-const {google} = require('googleapis');
 const path = require('path');
 const fs = require('fs');
 const moment = require('moment');
+const package = require('../package');
+const config = require('../config');
+const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+if (!fs.existsSync(path.join(__dirname, '../gauth.json'))) {
+    console.log(`File gauth.json not found. Impossible to run Google backup driver`);
+    process.exit(1);
+}
+
+const {google} = require('googleapis');
 
 const auth = new google.auth.GoogleAuth({
     keyFile: 'gauth.json',
@@ -76,7 +88,7 @@ async function clearAll(parentFolderId) {
 
 // ------------------------------------------------------------------------------------------------
 
-async function upload(filename) {
+async function upload(name, readStream) {
     let folderId = await getFileId(backupFolderName);
 
     // Create folder
@@ -96,18 +108,16 @@ async function upload(filename) {
     console.log(`Currently stored ${backups.length} backup(s): ${displayedBackupNames.join(", ")}`)
 
     // Upload the backup
-    const backupName = path.basename(filename);
-
     let response = await drive.files.create({
         requestBody: {
-            name: backupName,
+            name,
             parents: [folderId],
         },
         media: {
-            body: fs.createReadStream(filename),
+            body: readStream,
         },
     });
-    console.log(`Backup "${backupName}" uploaded`);
+    console.log(`Backup "${name}" uploaded`);
 
     return response;
 }
@@ -117,50 +127,61 @@ async function upload(filename) {
 // ------------------------------------------------------------------------------------------------
 
 async function onUploadCommand() {
-    if (process.argv.length < 4) {
-        console.error(`Invalid syntax: node main.js upload <backup-filename>`);
-        return;
-    }
-
-    const filename = process.argv[3];
     try {
-        await upload(filename);
+        const backupName = `db-backup-${package.version}-${moment().format('YY-MM-dd-hh-mm-ss')}`;
+        await upload(backupName, config.dbFile);
+
+        console.log(`${config.dbFile} successfully uploaded as ${backupName}`)
+
     } catch (error) {
         console.error(error);
     }
 }
 
 async function onListCommand() {
-    const backupFolderId = await getFileId(backupFolderName);
-    if (backupFolderId !== null) {
-        const filesSince = moment().subtract(5, 'days');
-        const files = (await listFiles(backupFolderId, filesSince))
-            .map(file => file.name)
-            .sort((a, b) => b.localeCompare(a));
+    console.log(`Backups of the past 5 days:`);
 
-        for (file of files) {
-            console.log(file);
-        }
+    const backupFolderId = await getFileId(backupFolderName);
+    if (backupFolderId == null) {
+        console.log(`No backup found`);
+        return;
+    }
+
+    const filesSince = moment().subtract(5, 'days');
+    const files = (await listFiles(backupFolderId, filesSince))
+        .map(file => file.name)
+        .sort((a, b) => b.localeCompare(a));
+
+    if (files.length === 0) {
+        console.log(`No backup found`);
+        return;
+    }
+
+    for (file of files) {
+        console.log(`- ${file.name}`);
     }
 }
 
 async function onClearAllCommand() {
-    let folderId = await getFileId(backupFolderName);
-    if (folderId !== null) {
-        await clearAll(folderId);
+    const answer = await readline.question(`Are you sure you want to delete all backups? [y/N]`);
+    if (answer === "y" || answer === "Y") {
+        let folderId = await getFileId(backupFolderName);
+        if (folderId !== null) {
+            await clearAll(folderId);
+        }
+        console.log(`Backups cleared`);
     }
 }
 
-async function onDownloadCommand() {
-    if (process.argv.length < 5) {
-        console.error(`Invalid syntax: node main.js download <remote-filename> <local-filename>`);
+async function onApplyCommand() {
+    if (process.argv.length < 4) {
+        console.error(`Invalid syntax: node backup.js apply <backup>`);
         return;
     }
 
-    const remoteFilename = process.argv[3];
-    const localFilename = process.argv[4];
+    const backupName = process.argv[3];
 
-    const fileId = await getFileId(remoteFilename);
+    const fileId = await getFileId(backupName);
     if (fileId == null) {
         return 1;
     }
@@ -169,7 +190,9 @@ async function onDownloadCommand() {
         fileId: fileId,
         alt: 'media',
     });
-    fs.writeFileSync(localFilename, file.data);
+    fs.writeFileSync(config.dbFile, file.data);
+
+    console.log(`Backup ${backupName} written to ${config.dbFile}`);
     return 0;
 }
 
@@ -177,21 +200,23 @@ async function onDownloadCommand() {
 // Main
 // ------------------------------------------------------------------------------------------------
 
-(async () => {
-    const commands = {
-        "upload": onUploadCommand,
-        "list": onListCommand,
-        "clearall": onClearAllCommand,
-        "download": onDownloadCommand,
-    };
-
-    if (process.argv.length < 3 || !(process.argv[2] in commands)) {
-        console.error(`Invalid syntax: node main.js <upload|list|download|apply> ...`);
-        return;
-    }
-
-    process.exit(
-        await commands[process.argv[2]]()
-    );
-})()
-    .catch(console.error);
+if (require.main === module) {
+    (async () => {
+        const commands = {
+            "upload": onUploadCommand,
+            "list": onListCommand,
+            "clearall": onClearAllCommand,
+            "apply": onApplyCommand,
+        };
+    
+        if (process.argv.length < 3 || !(process.argv[2] in commands)) {
+            console.error(`Invalid syntax: node main.js <upload|list|clearall|apply> ...`);
+            return;
+        }
+    
+        process.exit(
+            await commands[process.argv[2]]()
+        );
+    })()
+        .catch(console.error);
+}

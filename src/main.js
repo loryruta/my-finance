@@ -6,7 +6,7 @@ require('chartjs-adapter-moment');
 
 const db = require('./db');
 const { User } = require('./user');
-const config = require('../../config');
+const config = require('../config');
 const { Wallet } = require('./wallet');
 
 // ------------------------------------------------------------------------------------------------
@@ -25,7 +25,6 @@ function convertCurrencyToNumber(currency) {
 // ------------------------------------------------------------------------------------------------
 
 let context = {};
-let result;
 
 bot.on('message', async message => {
     const chatId = message.chat.id;
@@ -49,19 +48,19 @@ bot.on('message', async message => {
 
         let failed = true;
 
-        result = await db.query(`SELECT * FROM users WHERE "user"=$1`, [myUsername]);
-        if (result.rows.length > 0) {
-            const row = result.rows[0];
+        let rows = await db.all(`SELECT * FROM users WHERE "user"=$1`, [myUsername]);
+        if (rows.length > 0) {
+            const row = rows[0];
             const userId = row['id'];
             const storedPasswordDigest = row['password_digest'];
             const matched = await bcrypt.compare(myPassword, storedPasswordDigest);
             if (matched) {
                 const sessionValidUntil = moment().add(1, 'week');
                 
-                await db.query(`BEGIN`);
-                await db.query(`DELETE FROM session WHERE id_user=$1`, [userId]);
-                await db.query(`INSERT INTO session (id_chat, id_user, valid_until) VALUES ($1, $2, $3)`, [chatId, userId, sessionValidUntil]);
-                await db.query(`COMMIT`);
+                await db.run(`BEGIN`);
+                await db.run(`DELETE FROM sessions WHERE id_user=$1`, [userId]);
+                await db.run(`INSERT INTO sessions (id_chat, id_user, valid_until) VALUES ($1, $2, $3)`, [chatId, userId, sessionValidUntil]);
+                await db.run(`COMMIT`);
 
                 bot.sendMessage(chatId, "Logged in successfully");
                 failed = false;
@@ -79,11 +78,11 @@ bot.on('message', async message => {
 });
 
 async function getUserIdFromChatId(chatId) {
-    result = await db.query(`SELECT * FROM session WHERE id_chat=$1`, [chatId]);
-    if (result.rows.length === 0 /* TODO || invalid session */) {
+    let rows = await db.all(`SELECT * FROM sessions WHERE id_chat=$1`, [chatId]);
+    if (rows.length === 0 /* TODO || invalid session */) {
         return null;
     } else {
-        return result.rows[0]['id_user'];
+        return rows[0]['id_user'];
     }
 }
 
@@ -142,7 +141,7 @@ const onLoginCommand = async function (message) {
 const onLogoutCommand = requireLogin(async function (message) {
     const chatId = message.chat.id;
 
-    await db.query(`DELETE FROM session WHERE id_chat=$1`, [chatId]);
+    await db.run(`DELETE FROM sessions WHERE id_chat=$1`, [chatId]);
 
     bot.sendMessage(chatId, "Successfully logged out");
 });

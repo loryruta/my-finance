@@ -1,22 +1,17 @@
 const bcrypt = require('bcrypt');
 const db = require('./db');
-const config = require('../../config'); // TODO
+const config = require('../config');
 
 const bcryptSaltRounds = 10;
 
 async function insertUser(username, password) {
     const digest = bcrypt.hashSync(password, bcryptSaltRounds);
-    await db.query(`INSERT INTO users ("user", "password_digest") VALUES ($1, $2)`, [username, digest]);
+    await db.run(`INSERT INTO users ("user", "password_digest") VALUES ($1, $2)`, [username, digest]);
 }
 
-// ------------------------------------------------------------------------------------------------
-// Main
-// ------------------------------------------------------------------------------------------------
-
-(async () => {
-
+async function main() {
     try {
-        await db.query(`BEGIN`);
+        await db.run(`BEGIN`);
 
         // Users
         for (let user of config.users) {
@@ -24,12 +19,17 @@ async function insertUser(username, password) {
             console.log(`Inserted user: "${user.username}"`);
         }
 
-        await db.query(`COMMIT`);
+        await db.run(`COMMIT`);
 
     } catch (error) {
     }
     
     console.log(`DB seeded`);
 
-    await db.end();
-})();
+    await db.close();
+}
+
+if (require.main === module) {
+    main()
+        .catch(console.error);
+}

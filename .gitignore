@@ -133,3 +133,5 @@ dist
 config.json
 gauth.json
 .vscode
+db
+*.db

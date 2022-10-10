@@ -1,11 +1,15 @@
 FROM debian:latest
 
-# Utilities
+# Essentials
 RUN apt-get update -y && \
     apt-get install -y \
         lsb-release \
         wget \
-        nano
+        cron
+
+# Utilities
+RUN apt-get install -y \
+    nano
 
 # Node.js, npm, python3...
 RUN apt-get install -y \
@@ -21,7 +25,7 @@ RUN apt-get install -y \
         libgif-dev
 
 # node-gyp manually built to support arm64 (pre-built binaries not provided)
-RUN cd /usr/local/ && \
+RUN cd /usr/src/ && \
         git clone https://github.com/Automattic/node-canvas.git && \
         cd node-canvas && \
         npm i -g nan && \
@@ -29,16 +33,17 @@ RUN cd /usr/local/ && \
         node-gyp configure && \
         node-gyp build
 
-# PostgreSQL client (used for pg_dump)
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
-    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
-    apt-get update -y && \
-    apt-get install -y postgresql-client-14
+WORKDIR /usr/src/app/
 
-COPY . /usr/local/my-finance/
-
-WORKDIR /usr/local/my-finance/app/
-
+COPY . .
 RUN npm install
 
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+# Create a volume for persistent db
+VOLUME ./db
+
+# Backup cron-job
+RUN crontab -l | { cat; echo "0 0 * * * cd /usr/src/app && node ./src/backup.js"; } | crontab -
+
+# TODO run cron on container start
+
+ENTRYPOINT tail -f /dev/null
