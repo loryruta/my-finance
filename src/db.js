@@ -1,4 +1,4 @@
-const config = require('../config');
+const config = require('../configs/app');
 const sqlite3 = require('sqlite3').verbose();
 
 const db = new sqlite3.Database(config.dbFile);

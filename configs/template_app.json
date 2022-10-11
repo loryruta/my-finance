@@ -1,0 +1,14 @@
+{
+    "telegram": {
+        "token": "<...>",
+        "acceptedChatIds": []
+    },
+    "dbFile": "./db/my.db",
+    "users": [
+        { "username": "dad", "password": "12345" },
+        { "username": "mom", "password": "redcar2" },
+        { "username": "alice", "password": "never_use_12345" },
+        { "username": "bob", "password": "hello:)" },
+        { "username": "mauro", "password": "ImNotPartOfTheFamily>:)" }
+    ]
+}

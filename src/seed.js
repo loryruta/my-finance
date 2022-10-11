@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const db = require('./db');
-const config = require('../config');
+const config = require('../configs/app');
 
 const bcryptSaltRounds = 10;
 

@@ -38,12 +38,9 @@ WORKDIR /usr/src/app/
 COPY . .
 RUN npm install
 
-# Create a volume for persistent db
-VOLUME ./db
-
-# Backup cron-job
+# Create cron-job for backup
 RUN crontab -l | { cat; echo "0 0 * * * cd /usr/src/app && node ./src/backup.js"; } | crontab -
 
-# TODO run cron on container start
-
-ENTRYPOINT tail -f /dev/null
+ENTRYPOINT \
+    cron & \
+    node ./src/main.js

@@ -1,14 +1,24 @@
+const fs = require('fs');
+
 const bcrypt = require('bcrypt');
 const moment = require('moment');
+const { parseArgsStringToArgv } = require('string-argv');
+
 const db = require('./db');
 const { User } = require('./user');
-const config = require('../config');
 const { Wallet } = require('./wallet');
-const { parseArgsStringToArgv } = require('string-argv');
 
 // ------------------------------------------------------------------------------------------------
 // Initialization
 // ------------------------------------------------------------------------------------------------
+
+// Load app.json
+if (!fs.existsSync("./configs/app.json")) {
+    console.error(`Required config file "./configs/app.json" not found`);
+    process.exit(1);
+}
+
+const config = require('../configs/app');
 
 // Telegram bot
 console.log(`Initializing Telegram bot...`);

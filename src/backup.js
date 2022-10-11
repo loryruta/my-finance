@@ -1,18 +1,28 @@
 const path = require('path');
 const fs = require('fs');
+
 const moment = require('moment');
 const package = require('../package');
-const config = require('../config');
 const readline = require('readline').createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
+// Load ./configs/app.json
+if (!fs.existsSync("./configs/app.json")) {
+    console.error(`Required config file "./configs/app.json" not found`);
+    process.exit(1);
+}
+
+const config = require('../configs/app.json');
+
+// Load ./configs/gauth.json
 if (!fs.existsSync(path.join(__dirname, '../gauth.json'))) {
     console.log(`File gauth.json not found. Impossible to run Google backup driver`);
     process.exit(1);
 }
 
+// Connect to Google API
 const {google} = require('googleapis');
 
 const auth = new google.auth.GoogleAuth({
@@ -26,7 +36,7 @@ google.options({auth});
 
 const drive = google.drive('v3');
 
-const backupFolderName = "my-finance-backups"; // TODO configure it in config.json ?
+const backupFolderName = "my-finance-backups"; // TODO configure it in app.json ?
 
 // ------------------------------------------------------------------------------------------------
 // Google Drive
@@ -127,9 +137,14 @@ async function upload(name, readStream) {
 // ------------------------------------------------------------------------------------------------
 
 async function onUploadCommand() {
+    if (!fs.readFileSync(config.dbFile)) {
+        console.error(`DB file not found "${config.dbFile}"`);
+        return;
+    }
+
     try {
         const backupName = `db-backup-${package.version}-${moment().format('YY-MM-dd-hh-mm-ss')}`;
-        await upload(backupName, config.dbFile);
+        await upload(backupName, fs.readFileSync(config.dbFile));
 
         console.log(`${config.dbFile} successfully uploaded as ${backupName}`)
 

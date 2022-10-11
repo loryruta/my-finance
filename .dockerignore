@@ -1,4 +1,7 @@
+# IDE
+.vscode
+
+# Project
 node_modules
-config.json
-gauth.json
-*.db
+configs
+db
