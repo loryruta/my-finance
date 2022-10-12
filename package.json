@@ -27,5 +27,9 @@
   "bugs": {
     "url": "https://github.com/loryruta/my-finance/issues"
   },
-  "homepage": "https://github.com/loryruta/my-finance#readme"
+  "homepage": "https://github.com/loryruta/my-finance#readme",
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/node-telegram-bot-api": "^0.57.3"
+  }
 }

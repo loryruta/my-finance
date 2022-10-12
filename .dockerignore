@@ -2,6 +2,7 @@
 .vscode
 
 # Project
-node_modules
+build
 configs
 db
+node_modules

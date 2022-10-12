@@ -1,9 +1,11 @@
-const config = require('../configs/app');
-const sqlite3 = require('sqlite3').verbose();
+import sqlite3, { RunResult } from 'sqlite3';
+import { config } from "@app/main";
+
+sqlite3.verbose();
 
 const db = new sqlite3.Database(config.dbFile);
 
-async function all(sql, params) {
+async function all(sql: string, ...params: any[]): Promise<any[]> {
     return await new Promise((resolve, reject) => {
         db.all(sql, params, (error, rows) => {
             if (error != null) {
@@ -15,7 +17,7 @@ async function all(sql, params) {
     });
 }
 
-async function run(sql, params) {
+async function run(sql: string, ...params: any[]): Promise<RunResult> {
     return await new Promise((resolve, reject) => {
         db.run(sql, params, function (error, rows) {
             if (error != null) {
@@ -27,7 +29,7 @@ async function run(sql, params) {
     });
 }
 
-async function exec(sql) {
+async function exec(sql: string): Promise<RunResult> {
     return await new Promise((resolve, reject) => {
         db.run(sql, function (error) {
             if (error != null) {
@@ -39,7 +41,7 @@ async function exec(sql) {
     });
 }
 
-async function close() {
+async function close(): Promise<void> {
     return new Promise((resolve, reject) => {
         db.close(error => {
             if (error != null) {
@@ -51,7 +53,7 @@ async function close() {
     });
 }
 
-module.exports = {
+export = {
     all,
     run,
     exec,

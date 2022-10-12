@@ -1,21 +1,21 @@
-const db = require("./db");
-const { Model } = require('./model');
-const { Wallet } = require('./wallet');
+import db from '@app/db';
+import { Model } from './model';
+import { Wallet } from './wallet';
 
 class User extends Model {
-    constructor(id) {
+    constructor(id: number) {
         super("users", id);
     }
 
-    async createWallet(title) {
+    async createWallet(title: string): Promise<void> {
         await db.run("INSERT INTO wallets (id_user, title) VALUES (?, ?)", [this.id, title]);
     }
 
-    async destroyWallet(walletId) {
+    async destroyWallet(walletId: number): Promise<void> {
         await db.run("DELETE FROM wallets WHERE id_user=? AND id=?", [this.id, walletId]); // id_user for security
     }
 
-    async getSelectedWallet() {
+    async getSelectedWallet(): Promise<Wallet | undefined> {
         let rows = await db.all(`
             SELECT id_selected_wallet
             FROM users AS t1
@@ -31,16 +31,16 @@ class User extends Model {
         if (rows.length > 0) {
             return new Wallet(rows[0]['id_selected_wallet']);
         } else {
-            return null;
+            return undefined;
         }
     }
 
-    async getWalletCount() {
+    async getWalletCount(): Promise<number> {
         let rows = await db.all("SELECT COUNT(*) AS \"result\" FROM wallets WHERE id_user=?", [this.id]);
         return rows[0]['result'];
     }
 
-    async getWallets() {
+    async getWallets(): Promise<Wallet[]> {
         let rows = await db.all("SELECT id FROM wallets WHERE id_user=?", [this.id]);
         return rows.map(row => new Wallet(row['id']));
     }
@@ -67,7 +67,7 @@ class User extends Model {
     }
 }
 
-module.exports = {
+export {
     User,
-};
+}
 

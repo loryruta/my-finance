@@ -1,13 +1,13 @@
-const db = require("./db");
-const { Model } = require('./model');
-const util = require('util');
+import * as Util from "util";
+import db from '@app/db';
+import { Model } from './model';
 
 class Wallet extends Model {
-    constructor(id) {
+    constructor(id: number) {
         super("wallets", id);
     }
 
-    async addVariation(amount, timestamp, note) {
+    async addVariation(amount: number, timestamp?, note?: string) {
         await db.all(`
             INSERT INTO variations (id_wallet, amount, timestamp, note)
             SELECT ?, ?, COALESCE(?, DATETIME('now')), ?`, [
@@ -18,8 +18,8 @@ class Wallet extends Model {
         ]);
     }
 
-    async removeLastVariation() {
-        let rows = await db.run(`
+    async removeLastVariation() { // TODO typing
+        let rows = await db.all(`
             DELETE FROM variations AS t1
             WHERE
                 t1."timestamp" >= (
@@ -36,12 +36,12 @@ class Wallet extends Model {
         }
     }
     
-    async getVariations(period) {
+    async getVariations(period: 'day' | 'week' | 'month' | 'year') { // TODO typing
         if (!['day', 'week', 'month', 'year'].includes(period)) {
             throw "Bad idea!"; // Smartly avoid the risk of SQL injection
         }
         
-        let sql = util.format(`
+        let sql = Util.format(`
             SELECT * FROM variations
             WHERE
                 "id_wallet" = ? AND
@@ -53,6 +53,6 @@ class Wallet extends Model {
     }
 }
 
-module.exports = {
+export {
     Wallet,
-};
+}

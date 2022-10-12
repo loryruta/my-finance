@@ -17,6 +17,9 @@ RUN apt-get install -y \
     npm \
     python3
 
+# Typescript
+RUN npm install -g typescript
+
 # Libraries needed for node-gyp (library needed for node-canvas)
 RUN apt-get install -y \
         libpixman-1-dev \

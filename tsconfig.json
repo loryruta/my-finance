@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "baseUrl": ".",
+    "paths": {
+      "@app/*": ["./src/*"],
+    },
+    "esModuleInterop": true,
+    "removeComments": true,
+    "outDir": "./build/",
+    "experimentalDecorators": true,
+  },
+}
