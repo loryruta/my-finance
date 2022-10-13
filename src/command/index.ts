@@ -30,15 +30,15 @@ class CommandHandler {
     }
 
     protected registerBuiltinCommands() {
-        this.commands.concat([
-            new AddVariationCommand,
-            new CreateWalletCommand,
-            new DestroyWalletCommand,
-            new GenerateChartCommand,
-            new LoginCommand,
-            new LogoutCommand,
-            new RemoveLastVariationCommand,
-            new SelectWalletCommand,
+        this.commands = this.commands.concat([
+            new AddVariationCommand(),
+            new CreateWalletCommand(),
+            new DestroyWalletCommand(),
+            new GenerateChartCommand(),
+            new LoginCommand(),
+            new LogoutCommand(),
+            new RemoveLastVariationCommand(),
+            new SelectWalletCommand(),
         ]);
     }
 
@@ -50,11 +50,19 @@ class CommandHandler {
             }
         }));
 
-        this.bot.onText(/\/(.+)/, (message: Message, match: RegExpExecArray) => {
-            let found = this.commands.filter(command => command.name === match[1]);
+        this.bot.onText(/\/([^\s]+).*/, (message: Message, match: RegExpExecArray) => {
+            const who = message.chat.username;
+
+            console.log(`${who} issued "${match[1]}"`);
+
+            let found = this.commands.filter(command => {
+                return command.name === match[1];
+            });
             if (found.length > 0) {
                 found[0].run(message)
-                    .then(console.error);
+                    .catch(error => console.error(`Command execution error`, error));
+            } else {
+                console.log(`Command unrecognized`);
             }
         });
     }

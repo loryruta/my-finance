@@ -1,8 +1,8 @@
-const db = require('./db');
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import db from '@app/db';
 
-async function createMigrationTable() {
+async function createMigrationTable(): Promise<void> {
     await db.run(`
         CREATE TABLE IF NOT EXISTS "migrations" (
             "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -12,7 +12,7 @@ async function createMigrationTable() {
     `);
 }
 
-async function main() {
+async function main(): Promise<void> {
     await createMigrationTable();
 
     let result = await db.all(`
@@ -42,7 +42,7 @@ async function main() {
             for (let query of migrationQueries) {
                 await db.run(query);
             }
-            await db.run(`INSERT INTO "migrations" (filename, timestamp) VALUES (?, DATETIME('now'))`, [migration]);
+            await db.run(`INSERT INTO "migrations" (filename, timestamp) VALUES (?, DATETIME('now'))`, migration);
             await db.run(`COMMIT`);
         }
 

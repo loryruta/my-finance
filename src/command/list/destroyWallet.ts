@@ -7,8 +7,8 @@ import { getUserFromChatId } from '@app/auth';
 import { Command } from '@app/command';
 
 class DestroyWalletCommand implements Command {
-    readonly name: 'destroy';
-    readonly description: 'Destroy a wallet';
+    readonly name: string = 'destroy';
+    readonly description: string = 'Destroy a wallet';
 
     @requireLogin()
     @requireSelectedWallet()

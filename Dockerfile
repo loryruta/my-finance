@@ -18,7 +18,10 @@ RUN apt-get install -y \
     python3
 
 # Typescript
-RUN npm install -g typescript
+RUN npm install -g typescript tsc-alias
+
+# sqlite3 client (debug)
+RUN apt-get install -y sqlite3
 
 # Libraries needed for node-gyp (library needed for node-canvas)
 RUN apt-get install -y \
@@ -39,7 +42,8 @@ RUN cd /usr/src/ && \
 WORKDIR /usr/src/app/
 
 COPY . .
-RUN npm install
+RUN npm install && \
+    tsc --build && tsc-alias
 
 # Create cron-job for backup
 RUN crontab -l | { cat; echo "0 0 * * * cd /usr/src/app && node ./src/backup.js"; } | crontab -

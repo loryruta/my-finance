@@ -2,7 +2,7 @@ import db from '@app/db';
 import { User } from '@app/model/user';
 
 async function getUserIdFromChatId(chatId): Promise<number | undefined> {
-    let rows = await db.all(`SELECT * FROM sessions WHERE id_chat=?`, [chatId]);
+    let rows = await db.all(`SELECT * FROM sessions WHERE id_chat=?`, chatId);
     if (rows.length === 0 /* TODO || expired session */) {
         return undefined;
     } else {

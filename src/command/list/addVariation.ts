@@ -5,8 +5,8 @@ import { getUserFromChatId } from '@app/auth';
 import { Command } from '@app/command';
 
 class AddVariationCommand implements Command {
-    readonly name: 'add';
-    readonly description: 'Add a variation to the selected wallet';
+    readonly name: string = 'add';
+    readonly description: string = 'Add a variation to the selected wallet';
 
     @requireLogin()
     @requireSelectedWallet()

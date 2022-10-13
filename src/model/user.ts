@@ -8,11 +8,11 @@ class User extends Model {
     }
 
     async createWallet(title: string): Promise<void> {
-        await db.run("INSERT INTO wallets (id_user, title) VALUES (?, ?)", [this.id, title]);
+        await db.run("INSERT INTO wallets (id_user, title) VALUES (?, ?)", this.id, title);
     }
 
     async destroyWallet(walletId: number): Promise<void> {
-        await db.run("DELETE FROM wallets WHERE id_user=? AND id=?", [this.id, walletId]); // id_user for security
+        await db.run("DELETE FROM wallets WHERE id_user=? AND id=?", this.id, walletId); // id_user for security
     }
 
     async getSelectedWallet(): Promise<Wallet | undefined> {
@@ -27,7 +27,7 @@ class User extends Model {
                         t2.id = t1.id_selected_wallet AND
                         t2.id_user = t1.id
                 )
-        `, [this.id]);
+        `, this.id);
         if (rows.length > 0) {
             return new Wallet(rows[0]['id_selected_wallet']);
         } else {
@@ -36,12 +36,12 @@ class User extends Model {
     }
 
     async getWalletCount(): Promise<number> {
-        let rows = await db.all("SELECT COUNT(*) AS \"result\" FROM wallets WHERE id_user=?", [this.id]);
+        let rows = await db.all("SELECT COUNT(*) AS \"result\" FROM wallets WHERE id_user=?", this.id);
         return rows[0]['result'];
     }
 
     async getWallets(): Promise<Wallet[]> {
-        let rows = await db.all("SELECT id FROM wallets WHERE id_user=?", [this.id]);
+        let rows = await db.all("SELECT id FROM wallets WHERE id_user=?", this.id);
         return rows.map(row => new Wallet(row['id']));
     }
 
@@ -62,7 +62,7 @@ class User extends Model {
                 "timestamp" >= DATETIME('now', '-1 ${period}')
             ORDER BY "timestamp" ASC
             LIMIT 1024
-        `, [this.id, walletTitleRegex]);
+        `, this.id, walletTitleRegex);
         return rows;
     }
 }

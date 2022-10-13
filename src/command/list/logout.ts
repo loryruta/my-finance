@@ -6,16 +6,18 @@ import { requireLogin } from '@app/command/middleware/requireLogin';
 import { Command } from '@app/command';
 
 class LogoutCommand implements Command {
-    readonly name: 'logout';
-    readonly description: 'Logout';
+    readonly name: string = 'logout';
+    readonly description: string = 'Logout';
 
-    @requireLogin()
     async run(message: Message): Promise<void> {
         const chatId = message.chat.id;
 
-        await db.run(`DELETE FROM sessions WHERE id_chat=?`, [chatId]);
-    
-        await bot.sendMessage(chatId, `Successfully logged out`);
+        const result = await db.run(`DELETE FROM sessions WHERE id_chat=?`, chatId);
+        if (result.changes > 0) {
+            await bot.sendMessage(chatId, `Successfully logged out`);
+        } else {
+            await bot.sendMessage(chatId, `Already logged out`);
+        }
     }
 }
 

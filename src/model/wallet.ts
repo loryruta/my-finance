@@ -48,7 +48,7 @@ class Wallet extends Model {
                 "timestamp" >= DATETIME('now', '-1 %s')
             ORDER BY "timestamp" ASC
         `, period);
-        let rows = await db.all(sql, [this.id]);
+        let rows = await db.all(sql, this.id);
         return rows;
     }
 }

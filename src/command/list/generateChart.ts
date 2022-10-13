@@ -7,8 +7,8 @@ import { Command } from '@app/command';
 import { bot } from '@app/main';
 
 class GenerateChartCommand implements Command {
-    readonly name: 'add';
-    readonly description: 'Add a variation to the selected wallet';
+    readonly name: string = 'add';
+    readonly description: string = 'Add a variation to the selected wallet';
 
     @requireLogin()
     async run(message: Message): Promise<void> {

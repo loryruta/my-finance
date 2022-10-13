@@ -22,11 +22,16 @@ class Conversation {
         this.userData = {};
     }
 
+    protected next() {
+        const lastStage = this.chain.shift();
+        lastStage.dispose();
+        this.start();
+    }
+
     onMessage(callback: (conversation: this, message: Message) => Promise<boolean>): this {
         const handler = async (message: Message) => {
             if (message.chat.id === this.chatId && (await callback(this, message))) {
-                this.chain.shift();
-                this.start();
+                this.next();
             }
         };
         this.chain.push({
@@ -40,8 +45,7 @@ class Conversation {
         const handler = async (query: CallbackQuery) => {
             if (query.message!.chat.id === this.chatId && (await callback(this, query))) {
                 this.bot.answerCallbackQuery(query.id);
-                this.chain.shift();
-                this.start();
+                this.next();
             }
         };
         this.chain.push({
@@ -66,7 +70,10 @@ class Conversation {
 
     run<TCallbackReturn>(callback: (conversation: this) => Promise<TCallbackReturn>): this {
         this.chain.push({
-            run: () => callback(this),
+            run: () => {
+                callback(this);
+                this.next();
+            },
             dispose: () => {},
         });
         return this;

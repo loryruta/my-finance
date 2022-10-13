@@ -7,8 +7,8 @@ import { Conversation, createConversation } from '@app/conversation';
 import { Wallet } from '@app/model/wallet';
 
 class SelectWalletCommand implements Command {
-    readonly name: 'select';
-    readonly description: 'Select a wallet';
+    readonly name: string = 'select';
+    readonly description: string = 'Select a wallet';
 
     @requireLogin()
     async run(message: Message): Promise<void> {

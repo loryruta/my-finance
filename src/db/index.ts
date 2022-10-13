@@ -1,13 +1,13 @@
 import sqlite3, { RunResult } from 'sqlite3';
-import { config } from "@app/main";
+import config from "@app/config";
 
-sqlite3.verbose();
+let verboseSqlite3 = sqlite3.verbose();
 
-const db = new sqlite3.Database(config.dbFile);
+const db = new verboseSqlite3.Database(config().dbFile);
 
 async function all(sql: string, ...params: any[]): Promise<any[]> {
     return await new Promise((resolve, reject) => {
-        db.all(sql, params, (error, rows) => {
+        db.all(sql, ...params, (error, rows) => {
             if (error != null) {
                 reject(error);
             } else {
@@ -19,7 +19,7 @@ async function all(sql: string, ...params: any[]): Promise<any[]> {
 
 async function run(sql: string, ...params: any[]): Promise<RunResult> {
     return await new Promise((resolve, reject) => {
-        db.run(sql, params, function (error, rows) {
+        db.run(sql, ...params, function (error, rows) {
             if (error != null) {
                 reject(error);
             } else {

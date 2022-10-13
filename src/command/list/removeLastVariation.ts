@@ -7,8 +7,8 @@ import { Command } from '@app/command';
 import { bot } from '@app/main';
 
 class RemoveLastVariationCommand implements Command {
-    readonly name: 'add';
-    readonly description: 'Add a variation to the selected wallet';
+    readonly name: string = 'removelast';
+    readonly description: string = 'Remove the last variation of the selected wallet';
 
     @requireLogin()
     @requireSelectedWallet()

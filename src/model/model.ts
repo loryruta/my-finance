@@ -11,8 +11,7 @@ class Model {
     }
 
     async getAttribute(key: string): Promise<any | undefined> {
-        const sql = Util.format(`SELECT "%s" FROM "%s" WHERE id=?`, key, this.table);
-        const rows = await db.all(sql, [this.id]);
+        const rows = await db.all(Util.format(`SELECT "%s" FROM "%s" WHERE id=?`, key, this.table), this.id);
         if (rows.length > 0) {
             return rows[0][key];
         } else {
@@ -22,7 +21,7 @@ class Model {
 
     async setAttribute(key: string, value: any): Promise<void> {
         const sql = Util.format(`UPDATE "%s" SET "%s"=? WHERE id=?`, this.table, key);
-        await db.run(sql, [value, this.id]);
+        await db.run(sql, value, this.id);
     }
 }
 

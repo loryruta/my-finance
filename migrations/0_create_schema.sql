@@ -8,7 +8,7 @@ CREATE TABLE "users" (
 CREATE TABLE "sessions" (
     id_user INTEGER NOT NULL,
     id_chat INTEGER NOT NULL UNIQUE,
-    valid_until TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    valid_until DATETIME NOT NULL,
     PRIMARY KEY (id_user),
     FOREIGN KEY (id_user) REFERENCES users(id)
         ON DELETE CASCADE
@@ -26,7 +26,7 @@ CREATE TABLE "variations" (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     id_wallet INTEGER NOT NULL,
     amount MONEY NOT NULL,
-    "timestamp" TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    "timestamp" DATETIME NOT NULL,
     note VARCHAR(256),
     FOREIGN KEY (id_wallet) REFERENCES wallets(id)
         ON DELETE CASCADE
