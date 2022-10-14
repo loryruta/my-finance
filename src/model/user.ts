@@ -11,6 +11,11 @@ class User extends Model {
         await db.run("INSERT INTO wallets (id_user, title) VALUES (?, ?)", this.id, title);
     }
 
+    async getWallet(number: number): Promise<Wallet> {
+        // TODO check if the wallet is really of THIS user
+        return new Wallet(number);
+    }
+
     async destroyWallet(walletId: number): Promise<void> {
         await db.run("DELETE FROM wallets WHERE id_user=? AND id=?", this.id, walletId); // id_user for security
     }
@@ -43,27 +48,6 @@ class User extends Model {
     async getWallets(): Promise<Wallet[]> {
         let rows = await db.all("SELECT id FROM wallets WHERE id_user=?", this.id);
         return rows.map(row => new Wallet(row['id']));
-    }
-
-    async getVariations(period = 'month', walletTitleRegex = '*') {
-        if (!['day', 'week', 'month', 'year'].includes(period)) {
-            throw "Bad idea!"; // Smartly avoid the risk of SQL injection
-        }
-
-        let rows = await db.all(`
-            SELECT * FROM variations
-            WHERE
-                id_wallet IN (
-                    SELECT id FROM wallets
-                    WHERE
-                        id_user = ? AND
-                        title LIKE ?
-                ) AND
-                "timestamp" >= DATETIME('now', '-1 ${period}')
-            ORDER BY "timestamp" ASC
-            LIMIT 1024
-        `, this.id, walletTitleRegex);
-        return rows;
     }
 }
 

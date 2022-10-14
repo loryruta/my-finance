@@ -27,7 +27,10 @@ class Conversation {
 
     createRunNode(name: string, callback: () => Promise<void>): Node {
         const node = {
-            run: () => callback(),
+            run: () => {
+                callback()
+                    .catch(console.error)
+            },
             dispose: () => {},
         };
         this.nodes.set(name, node);
@@ -35,9 +38,10 @@ class Conversation {
     }
 
     createOnMessageNode(name: string, callback: (message: Message) => Promise<void>): Node {
-        const handler = async (message: Message) => {
+        const handler = (message: Message) => {
             if (message.chat.id === this.chatId) {
-                await callback(message);
+                callback(message)
+                    .catch(console.error);
             }
         };
         const node = {
@@ -49,9 +53,10 @@ class Conversation {
     }
 
     protected createOnCallbackQueryNode(name: string, callback: (query: CallbackQuery) => Promise<void>): Node {
-        const handler = async (query: CallbackQuery) => {
+        const handler = (query: CallbackQuery) => {
             if (query.message!.chat.id === this.chatId) {
-                await callback(query);
+                callback(query)
+                    .catch(console.error);
             }
         };
         const node = {
@@ -94,13 +99,17 @@ class Conversation {
 
 const conversations = new Map<number, Conversation>;
 
-function createConversation(bot: TelegramBot, chatId: number): Conversation {
+function disposeConversation(chatId: number): void {
     const oldConversation = conversations.get(chatId);
     if (oldConversation != null) {
         oldConversation.dispose();
     }
-    
-    let conversation = new Conversation(bot, chatId);
+}
+
+function createConversation(bot: TelegramBot, chatId: number): Conversation {
+    disposeConversation(chatId);
+
+    const conversation = new Conversation(bot, chatId);
     conversations.set(chatId, conversation);
     return conversation;
 }
@@ -108,6 +117,7 @@ function createConversation(bot: TelegramBot, chatId: number): Conversation {
 export {
     Conversation,
     createConversation,
+    disposeConversation,
 }
 
 // TODO end conversations after some amount of time being open

@@ -7,6 +7,7 @@
     "chartjs-node-canvas": "^4.1.6",
     "googleapis": "^108.0.0",
     "moment": "^2.29.4",
+    "node-emoji": "^1.11.0",
     "node-telegram-bot-api": "^0.59.0",
     "sqlite3": "^5.1.2",
     "string-argv": "^0.3.1"
@@ -30,6 +31,7 @@
   "homepage": "https://github.com/loryruta/my-finance#readme",
   "devDependencies": {
     "@types/bcrypt": "^5.0.0",
+    "@types/node-emoji": "^1.8.2",
     "@types/node-telegram-bot-api": "^0.57.3"
   }
 }

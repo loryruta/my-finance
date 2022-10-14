@@ -5,6 +5,7 @@ import { getUserFromChatId } from '@app/auth';
 import { Command } from '@app/command';
 import { Conversation, createConversation } from '@app/conversation';
 import { bot } from '@app/main';
+import { emojify } from 'node-emoji'
 
 class AddVariationCommand implements Command {
     readonly name: string = 'add';
@@ -50,11 +51,11 @@ class AddVariationCommand implements Command {
                 reply_markup: {
                     inline_keyboard: [
                         [
-                            { text: "Add a note", callback_data: "editor_input.note" },
-                            { text: "Set date", callback_data: "editor_input.set_date" },
+                            { text: emojify("Add a note :spiral_note_pad:"), callback_data: "editor_input.note" },
+                            { text: emojify("Set date :clock3:"), callback_data: "editor_input.set_date" },
                         ],
-                        [ { text: "Confirm", callback_data: "editor_input.confirm" } ],
-                        [ { text: "Cancel", callback_data: "editor_input.cancel" } ],
+                        [ { text: emojify("Confirm :white_check_mark:"), callback_data: "editor_input.confirm" } ],
+                        [ { text: emojify("Cancel :x:"), callback_data: "editor_input.cancel" } ],
                     ]
                 }
             });
