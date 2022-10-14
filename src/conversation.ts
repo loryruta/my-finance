@@ -1,7 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { Message, CallbackQuery } from 'node-telegram-bot-api';
 
-interface Stage {
+interface Node {
     run();
     dispose();
 }
@@ -10,85 +10,84 @@ class Conversation {
     readonly bot: TelegramBot;
     readonly chatId: number;
     
-    private chain: Stage[];
-    
+    private activeNode: Node;
+    private readonly nodes: Map<string, Node>;
+
     userData: any;
 
     constructor(bot: TelegramBot, chatId: number) { // Shouldn't be called by externals (use createConversation instead)
         this.bot = bot;
         this.chatId = chatId;
-        this.chain = [];
         
+        this.activeNode = null;
+        this.nodes = new Map<string, Node>();
+
         this.userData = {};
     }
 
-    protected next() {
-        const lastStage = this.chain.shift();
-        lastStage.dispose();
-        this.start();
+    createRunNode(name: string, callback: () => Promise<void>): Node {
+        const node = {
+            run: () => callback(),
+            dispose: () => {},
+        };
+        this.nodes.set(name, node);
+        return node;
     }
 
-    onMessage(callback: (conversation: this, message: Message) => Promise<boolean>): this {
+    createOnMessageNode(name: string, callback: (message: Message) => Promise<void>): Node {
         const handler = async (message: Message) => {
-            if (message.chat.id === this.chatId && (await callback(this, message))) {
-                this.next();
+            if (message.chat.id === this.chatId) {
+                await callback(message);
             }
         };
-        this.chain.push({
+        const node = {
             run: () => this.bot.on('message', handler),
             dispose: () => this.bot.removeListener('message', handler),
-        });
-        return this;
+        };
+        this.nodes.set(name, node);
+        return node;
     }
 
-    onCallbackQuery(callback: (conversation: this, query: CallbackQuery) => Promise<boolean>): this {
+    protected createOnCallbackQueryNode(name: string, callback: (query: CallbackQuery) => Promise<void>): Node {
         const handler = async (query: CallbackQuery) => {
-            if (query.message!.chat.id === this.chatId && (await callback(this, query))) {
-                this.bot.answerCallbackQuery(query.id);
-                this.next();
+            if (query.message!.chat.id === this.chatId) {
+                await callback(query);
             }
         };
-        this.chain.push({
+        const node = {
             run: () => this.bot.on('callback_query', handler),
             dispose: () => this.bot.removeListener('callback_query', handler),
-        });
-        return this;
+        };
+        this.nodes.set(name, node);
+        return node;
     }
 
-    /**
-     * Expect the query string to be in the format `<queryName>.<answer>` and pass the `answer` argument to the given `callback`
-     */
-    onNamedCallbackQuery(name: string, callback: (conversation: this, query: CallbackQuery, answer: string) => Promise<boolean>): this {
-        return this.onCallbackQuery(async (conversation: this, query: CallbackQuery) => {
+    createOnNamedCallbackQueryNode(name: string, callback: (query: CallbackQuery, answer: string) => Promise<void>): Node {
+        return this.createOnCallbackQueryNode(name, async (query: CallbackQuery) => {
             let [queryName, answer] = query.data.split('.');
-            if (queryName === name && (await callback(this, query, answer))) {
-                return true;
+            if (queryName === name) {
+                await callback(query, answer);
+                this.bot.answerCallbackQuery(query.id);
             }
-            return false;
         });
     }
 
-    run<TCallbackReturn>(callback: (conversation: this) => Promise<TCallbackReturn>): this {
-        this.chain.push({
-            run: () => {
-                callback(this);
-                this.next();
-            },
-            dispose: () => {},
-        });
-        return this;
-    }
-
-    start(): void {
-        if (this.chain.length > 0) {
-            this.chain[0].run();
+    setActiveNode(name: string) {
+        const node = this.nodes.get(name);
+        if (!node) {
+            throw `Node "${name}" not found`;
         }
+        if (this.activeNode) {
+            this.activeNode.dispose();
+        }
+        this.activeNode = node;
+        node.run();
     }
 
-    end(): void {
-        if (this.chain.length > 0) {
-            this.chain[0].dispose();
-            this.chain = [];
+    dispose(): void {
+        if (this.activeNode) {
+            this.activeNode.dispose();
+            this.activeNode = null;
         }
     }
 }
@@ -98,7 +97,7 @@ const conversations = new Map<number, Conversation>;
 function createConversation(bot: TelegramBot, chatId: number): Conversation {
     const oldConversation = conversations.get(chatId);
     if (oldConversation != null) {
-        oldConversation.end();
+        oldConversation.dispose();
     }
     
     let conversation = new Conversation(bot, chatId);

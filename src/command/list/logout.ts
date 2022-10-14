@@ -2,7 +2,6 @@
 import { Message } from 'node-telegram-bot-api'
 import { bot } from '@app/main';
 import db from '@app/db';
-import { requireLogin } from '@app/command/middleware/requireLogin';
 import { Command } from '@app/command';
 
 class LogoutCommand implements Command {

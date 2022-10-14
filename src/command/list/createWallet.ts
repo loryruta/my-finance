@@ -19,22 +19,28 @@ class CreateWalletCommand implements Command {
             return;
         }
 
-        createConversation(bot, chatId)
-            .run(async () =>
-                await bot.sendMessage(chatId, `Insert wallet's title`))
-            .onMessage(async (conversation: Conversation, message: Message) => {
-                const title = message.text;
-    
-                if (title.length >= 256) {
-                    bot.sendMessage(chatId, `Title must be at most 256 characters. Think of another title \u{1F914}`);
-                    return false;
-                }
+        const conversation = createConversation(bot, chatId);
 
-                await user.createWallet(title);
-                return true;
-            })
-            .run(async () =>
-                await bot.sendMessage(chatId, `Wallet created successfully`));
+        conversation.createRunNode('main', async () => {
+            await bot.sendMessage(chatId, `Insert wallet's title`);
+            conversation.setActiveNode('insert_title');
+        });
+
+        conversation.createOnMessageNode('insert_title', async (message: Message) => {
+            const title = message.text;
+    
+            if (title.length >= 256) {
+                bot.sendMessage(chatId, `Title must be at most 256 characters. Think of another title \u{1F914}`);
+                return;
+            }
+
+            await user.createWallet(title);
+            await bot.sendMessage(chatId, `Wallet created successfully`);
+
+            conversation.dispose();
+        });
+
+        conversation.setActiveNode('main');
     }
 }
 

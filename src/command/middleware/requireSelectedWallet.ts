@@ -10,7 +10,7 @@ function requireSelectedWallet() {
             const chatId = message.chat.id;
             const user = await getUserFromChatId(chatId);
     
-            if ((await user.getSelectedWallet()) === null) {
+            if ((await user.getSelectedWallet()) == null) {
                 bot.sendMessage(chatId, `You've not selected any wallet. Use /select`);
                 return;
             }
